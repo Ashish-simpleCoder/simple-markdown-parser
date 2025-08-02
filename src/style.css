@@ -1,0 +1,98 @@
+* {
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body {
+    background-color: rgb(29, 23, 41);
+    color: white;
+}
+
+.main-heading {
+    text-align: center;
+}
+
+.container {
+    display: flex;
+    width: 100%;
+    max-width: 1400px;
+    margin-inline: auto;
+    margin-block: 40px;
+    gap: 50px;
+}
+
+textarea {
+    box-shadow: 4px 4px 10px rgb(12, 9, 12);
+    border-radius: 10px;
+    padding: 12px;
+
+    border: none;
+    flex: 1;
+    height: 600px;
+    background-color: rgb(42, 35, 56);
+    color: white;
+    font-size: 20px;
+    font-family: inherit;
+
+    scroll-padding-bottom: 150px;
+    overflow-y: scroll;
+}
+
+.viewer {
+    box-shadow: 4px 4px 10px rgb(61, 53, 61);
+    border-radius: 10px;
+    padding: 12px;
+
+    flex: 1;
+    height: 600px;
+    background-color: rgb(34, 14, 48);
+
+    color: white;
+    font-size: 20px;
+    font-family: Arial, Helvetica, sans-serif;
+    overflow-y: auto;
+}
+
+
+
+
+
+/* all of the tags generated from markdown */
+
+.markdown-body > code {
+    background-color: rgb(59, 59, 59);
+    padding-inline: 6px;
+    margin: 0;
+    padding-block: 4px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* .markdown-body {} */
+
+.markdown-body pre {
+    background-color: rgb(59, 59, 59);
+    padding: 16px;
+    border-radius: 6px;
+}
+
+.markdown-body pre p {
+    margin: 0 !important;
+}
+
+/* .markdown-body pre code {} */
+
+.markdown-body blockquote {
+    color: rgb(184, 184, 184);
+    position: relative;
+    padding-left: 20px;
+    margin: 0;
+}
+
+.markdown-body blockquote::before {
+    content: '';
+    position: absolute;
+    background-color: rgb(184, 184, 184);
+    width: 4px;
+    height: 100%;
+    left: 0;
+}

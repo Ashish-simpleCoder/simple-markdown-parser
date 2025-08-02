@@ -1,0 +1,65 @@
+# My Custom Markdown Parser
+
+The universal truth : **One punch man s-3 is not coming**
+
+
+
+## UL
+- *Blast* is coming in **One punch man**....
+- **God level threat** is coming soon....
+
+## OL
+1. Building side projects and practicing are great way to becoming a great developer.
+2. You are *not* building anything so I am. 
+
+## Code
+` I code`
+
+## link
+[google.com](github.com)
+
+## Image
+![ashish-simpleCoder](https://avatars.githubusercontent.com/u/62009244?v=4)
+
+## Codeblock
+```this is super awesome```
+
+## Hr
+----
+
+I am ashish-simpleCoder
+
+## Block quote
+> blocking quote
+
+# h1 adsa
+## H2 
+## h3
+
+
+simple pragraph.
+
+another simple paragraph.
+
+## some random h2
+
+
+Below is another UL
+- awesome
+- go is with use and **bold** and *italic* and mixed ***mix***.
+
+
+
+## HR (weird hr)
+---
+           ---
+--_________
+---------------------
+                        _____________
+
+
+## Another codeblock
+```
+console.log("javascript")
+> Javascript is dynamically typed language.
+```
