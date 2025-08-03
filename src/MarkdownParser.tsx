@@ -92,7 +92,7 @@ class MarkdownParser {
    }
 
    parseCodeBlocks(html: string) {
-      return html.replace(this.rules.codeBlock, '<pre><code>$1</code></pre>')
+      return html.replace(this.rules.codeBlock, '<pre><code>$1</code><button class="copy-btn">copy</button></pre>')
    }
 
    parseBlockquotes(html: string) {

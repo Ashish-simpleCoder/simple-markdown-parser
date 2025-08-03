@@ -1,7 +1,8 @@
 # Simple Markdown Parser
 
+A simple markdown parser
 
-It can parse followings:
+It can parse followings and convert them to html:
 - h1
 - h2
 - h3

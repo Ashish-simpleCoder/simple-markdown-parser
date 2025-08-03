@@ -27,7 +27,7 @@
    <script>
       const textarea = document.querySelector("textarea")
       const viewer = document.querySelector("div.viewer")
-      
+
       fetch('/text.txt')
          .then(response => response.text())
          .then((data) => {
@@ -43,6 +43,53 @@
          viewer.innerHTML = parsedContent
          // viewer.scrollTop = viewer.scrollHeight
       })
+
+
+
+      function addCopyButton(pre) {
+         const button = pre.querySelector('.copy-btn')
+
+         button.addEventListener('click', () => {
+            const code = pre.querySelector('code');
+            if (!code) return
+            navigator.clipboard.writeText(code.textContent)
+               .then(() => {
+                  button.textContent = 'Copied!';
+                  setTimeout(() => (button.textContent = 'Copy'), 2000);
+               })
+               .catch(err => console.error('Failed to copy:', err));
+         });
+      }
+
+      const observerCallback = (mutations) => {
+         mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+               if (node.nodeType === Node.ELEMENT_NODE) {
+                  if (node.tagName.toLowerCase() === 'pre') {
+                     addCopyButton(node);
+                  } else {
+                     node.querySelectorAll?.('pre').forEach(addCopyButton);
+                  }
+               }
+            });
+
+            mutation.removedNodes.forEach(node => {
+               if (node.nodeType === Node.ELEMENT_NODE && node.tagName.toLowerCase() === 'pre') {
+                  const btn = node.parentNode?.querySelector?.('.copy-btn');
+                  if (btn) btn.remove();
+               }
+            });
+         });
+      };
+
+      const observer = new MutationObserver(observerCallback);
+      observer.observe(document.body, {
+         childList: true,
+         subtree: true
+      });
+
+      document.querySelectorAll('pre').forEach(addCopyButton);
+
    </script>
 </body>
 
