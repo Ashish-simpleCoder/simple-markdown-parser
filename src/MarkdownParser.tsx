@@ -1,5 +1,5 @@
 class MarkdownParser {
-   rules: Record<string, RegExp> = {
+   rules = {
       // headers
       h1: /^# (.+)$/gm,
       h2: /^## (.+)$/gm,
@@ -184,20 +184,46 @@ class MarkdownParser {
       const lines = html.split('\n')
       const result: string[] = []
       let currentParagraph: string[] = []
+      let preTagContent: string[] = []
 
       for (const line of lines) {
          const trimmedLine = line.trim()
 
+         const isStartingWithPreTag = preTagStartRegx.exec(line)
+         const isEndingWithPreTag = preTagEndRegx.exec(line)
+
+         if(isStartingWithPreTag && isEndingWithPreTag){
+            result.push(line)
+            preTagContent = []
+            continue
+         }
+         if(isStartingWithPreTag && !isEndingWithPreTag){
+            preTagContent = []
+            preTagContent.push(line)
+            continue
+         }
+         if(!isStartingWithPreTag && isEndingWithPreTag){
+            preTagContent.push(line)
+            result.push(preTagContent.join("\n"))
+            preTagContent = []
+            continue
+         }
+         if(preTagContent.length > 0){
+            preTagContent.push(line)
+            continue
+         }
+
+
          // skip empty lines and already processed elements
-         if (trimmedLine === '' || trimmedLine.startsWith('<') || trimmedLine.includes('</')) {
+         if (trimmedLine === '' || trimmedLine.startsWith('<') || trimmedLine.includes('</')) {           
             // if trimmedLine is encountered, the close the current-paragraph
             if (currentParagraph.length > 0) {
                let joinedStr = this.parseAllInlineElementsWithinAnElement(currentParagraph)
+               // console.log(joinedStr)
                result.push("<p>" + joinedStr + "</p>")
 
                currentParagraph = []
             }
-
             // add the line as-is (already running tags)
             result.push(this.parseAllInlineElementsWithinAnElement([line]))
          } else {
@@ -211,7 +237,9 @@ class MarkdownParser {
          let joinedStr = this.parseAllInlineElementsWithinAnElement(currentParagraph)
          result.push("<p>" + joinedStr + "</p>")
       }
-
       return result.join('\n')
    }
 }
+let preTagStartRegx = /(\s?)<pre>/g
+
+let preTagEndRegx = /<\/pre>(\s?)/g
