@@ -58,6 +58,11 @@ textarea {
 
 /* all of the tags generated from markdown */
 
+.markdown-body h1, .markdown-body h2{
+    border-bottom: 1px solid rgb(83, 83, 83);
+}
+
+
 .markdown-body code {
     background-color: rgb(59, 59, 59);
     padding-inline: 6px;
@@ -74,6 +79,7 @@ textarea {
     padding: 16px;
     border-radius: 6px;
     position: relative;
+    overflow: auto;
 }
 
 .markdown-body pre code {
@@ -104,7 +110,7 @@ textarea {
 
 
 
-.copy-btn{
+.copy-btn {
     position: absolute;
     top: 10px;
     right: 10px;
