@@ -32,6 +32,7 @@ class MarkdownParser {
    constructor() {
 
    }
+
    splitByBlockElementMarkdown(html: string) {
       // split string with followings
       // 1. heading elments as they are block elements
@@ -55,7 +56,8 @@ class MarkdownParser {
       // 3. hr
       // 4. ul
       // 5. ol
-      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+)/gm)
+      // 6. line-terminator (needed to split content present with codeblock to make them paragraphs)
+      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+$|.+$)/gm)
       // let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+)/gm)
 
 
@@ -80,6 +82,17 @@ class MarkdownParser {
          // code block parsing
          const codeBlockExec = /\`{3}([\s\S]*?)\`{3}/gm.exec(line)
          if (codeBlockExec) {
+            // if ol-running, then close it off
+            if (isOLRunning) {
+               htmlResult.push("</ol>")
+               isOLRunning = false
+            }
+            // if ul-running, then close it off
+            if (isULRunning) {
+               htmlResult.push("</ul>")
+               isULRunning = false
+            }
+
             const [wholeCodeBlock, codeBlockContent] = codeBlockExec
             htmlResult.push(`<pre><code>${codeBlockContent}</code></pre>`)
             continue
@@ -158,7 +171,7 @@ class MarkdownParser {
 
 
             // hr parsing
-            const hrExec = /^[\s]*[-*_]{3,}[\s]*/gm.exec(line)
+            const hrExec = /^[\s]*[-*_]{3,}[\s]*$/g.exec(line)
             if (hrExec) {
                htmlResult.push("<hr />")
                continue
@@ -175,10 +188,9 @@ class MarkdownParser {
                   continue
                }
 
-               if(content.trim()){
+               if (content.trim()) {
                   // parsing everything as paragraph
                   const paragraph = this.parseAllInlineElementsWithinAnElement([content])
-                  console.log(paragraph, content)
                   htmlResult.push(`<p>${paragraph}</p>`)
                }
             }
