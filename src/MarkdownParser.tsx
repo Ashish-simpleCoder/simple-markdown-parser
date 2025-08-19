@@ -63,6 +63,7 @@ class MarkdownParser {
 
       // Restore code blocks in the results
       return result.filter(section => {
+         // remove all of the blocks containing only white-space characters
          const newLineRegx = /^\s*$/g
          return !newLineRegx.exec(section)
       }).map(section => {
@@ -191,9 +192,16 @@ class MarkdownParser {
                }
 
                if (content.trim()) {
-                  // parsing everything as paragraph
-                  const paragraph = this.parseAllInlineElementsWithinAnElement([content])
-                  htmlResult.push(`<p data-line='${index}'>${paragraph}</p>`)
+                  // if content is valid html tag then insert as it is.
+                  const tagExec = /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(content)
+                  if (tagExec) {
+                     const [wholeHtmlTag] = tagExec
+                     htmlResult.push(wholeHtmlTag)
+                  } else {
+                     // parsing everything as paragraph
+                     const paragraph = this.parseAllInlineElementsWithinAnElement([content])
+                     htmlResult.push(`<p data-line='${index}'>${paragraph}</p>`)
+                  }
                }
             }
          }
