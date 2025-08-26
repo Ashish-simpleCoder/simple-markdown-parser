@@ -57,12 +57,11 @@ class MarkdownParser {
       // 4. ul
       // 5. ol
       // 6. line-terminator (needed to split content present with codeblock to make them paragraphs)
-      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+$|.+$)/gm)
+      // 7. codeblock-placeholder
+      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm)
       // let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+)/gm)
-
-
       // Restore code blocks in the results
-      return result.filter(section => {
+      const mappedResult = result.filter(section => {
          // remove all of the blocks containing only white-space characters
          const newLineRegx = /^\s*$/g
          return !newLineRegx.exec(section)
@@ -72,6 +71,8 @@ class MarkdownParser {
             // (match, index) => `${placeholder}${codeBlocks[parseInt(index)]}${placeholder}`
          );
       });
+
+      return mappedResult
    }
 
    convertToElement(html: string[]) {
@@ -83,7 +84,7 @@ class MarkdownParser {
          const line = html[index]
 
          // code block parsing
-         const codeBlockExec = /\`{3}([\s\S]*?)\`{3}/gm.exec(line)
+         const codeBlockExec = /^\`{3}([\s\S]*?)\`{3}$/gm.exec(line)
          if (codeBlockExec) {
             // if ol-running, then close it off
             if (isOLRunning) {
@@ -180,7 +181,7 @@ class MarkdownParser {
                continue
             }
 
-            const splittedLines = line.split("\n")
+            const splittedLines = line.split("\n\n")   // To count multiple lines with \n as single paragraph. Which allows to write one paragraph in multiple lines.
 
             for (const content of splittedLines) {
                // img parsing
