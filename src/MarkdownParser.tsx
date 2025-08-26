@@ -265,6 +265,7 @@ class MarkdownParser {
       // *this is italic*
       html = html.replace(this.rules.bold, startWhiteSpace + '<strong>$1</strong>')
       html = html.replace(this.rules.italic, startWhiteSpace + '<em>$1</em>')
+      html = html.replace(this.rules.codeBlock, startWhiteSpace + '<code>$1</code>')
       html = html.replace(this.rules.code, startWhiteSpace + '<code>$1</code>')
       html = this.parseLinks(startWhiteSpace + html)
       return html
@@ -355,7 +356,7 @@ class MarkdownParser {
          const isLastIndex = elementMarkdownStringLine.length > 1 ? index == elementMarkdownStringLine.length - 1 : false
          let preWhitespace = isLastIndex ? " " : ""
 
-         if (this.rules.bold.test(item) || this.rules.italic.test(item) || this.rules.code.test(item) || this.rules.link.test(item)) {
+         if (this.rules.bold.test(item) || this.rules.italic.test(item) || this.rules.codeBlock.test(item) || this.rules.code.test(item) || this.rules.link.test(item)) {
             let mappedItem = this.parseInlineFormatting(item, preWhitespace)
             return acc += preWhitespace + mappedItem
          }
