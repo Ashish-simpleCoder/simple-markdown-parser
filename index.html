@@ -30,7 +30,7 @@
       const textarea = document.querySelector("textarea")
       const viewer = document.querySelector("div.viewer")
 
-      fetch('/text.txt')
+      fetch('public/text.txt')
          .then(response => response.text())
          .then((data) => {
             textarea.value = data
