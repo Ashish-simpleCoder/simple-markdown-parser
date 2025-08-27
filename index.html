@@ -7,19 +7,21 @@
    <link rel="preconnect" href="https://fonts.googleapis.com">
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
       rel="stylesheet">
    <link rel="stylesheet" href="./src/style.css">
-   <script src="./src/MarkdownParser.tsx"></script>
+   <script src="./src/MarkdownParser.js"></script>
    <title>Simple Markdown Parser</title>
 
 </head>
 
 <body>
+   <div class="fixed-bg"></div>
+
    <h1 class="main-heading">Markdown Parser</h1>
 
    <div class="container">
-      <textarea></textarea>
+      <textarea class="markdown-editor"></textarea>
       <div class="viewer markdown-body"></div>
    </div>
 
@@ -32,30 +34,34 @@
          .then(response => response.text())
          .then((data) => {
             textarea.value = data
-            const parsedContent = Parser.parse(data)
-            viewer.innerHTML = parsedContent
+            const parsedContent = Parser.splitByBlockElementMarkdown(data)
+            let finalHtml = Parser.convertToElement(parsedContent)
+            viewer.innerHTML = finalHtml
          })
 
       const Parser = new MarkdownParser()
 
       textarea.addEventListener("input", (e) => {
-         const parsedContent = Parser.parse(e.target.value)
-         viewer.innerHTML = parsedContent
-         // viewer.scrollTop = viewer.scrollHeight
+         const parsedContent = Parser.splitByBlockElementMarkdown(e.target.value)
+         let finalHtml = Parser.convertToElement(parsedContent)
+         viewer.innerHTML = finalHtml
       })
 
 
-
       function addCopyButton(pre) {
-         const button = pre.querySelector('.copy-btn')
+         const copyBtn = document.createElement("button")
+         copyBtn.classList.add("copy-btn")
+         copyBtn.textContent = "copy"
 
-         button.addEventListener('click', () => {
+         pre.appendChild(copyBtn)
+
+         copyBtn.addEventListener('click', () => {
             const code = pre.querySelector('code');
             if (!code) return
             navigator.clipboard.writeText(code.textContent)
                .then(() => {
-                  button.textContent = 'Copied!';
-                  setTimeout(() => (button.textContent = 'Copy'), 2000);
+                  copyBtn.textContent = 'Copied!';
+                  setTimeout(() => (copyBtn.textContent = 'Copy'), 2000);
                })
                .catch(err => console.error('Failed to copy:', err));
          });
@@ -89,7 +95,6 @@
       });
 
       document.querySelectorAll('pre').forEach(addCopyButton);
-
    </script>
 </body>
 

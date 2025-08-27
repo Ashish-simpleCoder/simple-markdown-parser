@@ -1,5 +1,5 @@
 class MarkdownParser {
-   rules: Record<string, RegExp> = {
+   rules = {
       // headers
       h1: /^# (.+)$/gm,
       h2: /^## (.+)$/gm,
@@ -31,6 +31,192 @@ class MarkdownParser {
 
    constructor() {
 
+   }
+
+   splitByBlockElementMarkdown(html: string) {
+      // split string with followings
+      // 1. heading elments as they are block elements
+      // 2. blockquote
+      // 3. codeblock
+      // 4. lists
+      // 5. HR
+
+      const codeBlocks: string[] = [];
+      const placeholder = '###CODEBLOCK###';
+
+      let processedString = html.replace(/\`{3}[\s\S]*?\`{3}/gm, (match) => {
+         codeBlocks.push(match)
+
+         return `${placeholder}${codeBlocks.length - 1}${placeholder}`
+      })
+
+      // split line-by in following sequence with below regx
+      // 1. heading
+      // 2. blockquote
+      // 3. hr
+      // 4. ul
+      // 5. ol
+      // 6. line-terminator (needed to split content present with codeblock to make them paragraphs)
+      // 7. codeblock-placeholder
+      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm)
+      // let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+)/gm)
+      // Restore code blocks in the results
+      const mappedResult = result.filter(section => {
+         // remove all of the blocks containing only white-space characters
+         const newLineRegx = /^\s*$/g
+         return !newLineRegx.exec(section)
+      }).map(section => {
+         return section.replace(new RegExp(`${placeholder}(\\d+)${placeholder}`, 'g'),
+            (match, index) => `${codeBlocks[parseInt(index)]}`
+            // (match, index) => `${placeholder}${codeBlocks[parseInt(index)]}${placeholder}`
+         );
+      });
+
+      return mappedResult
+   }
+
+   convertToElement(html: string[]) {
+      let htmlResult: string[] = []
+      let isULRunning = false
+      let isOLRunning = false
+
+      for (let index = 0; index < html.length; index++) {
+         const line = html[index]
+
+         // code block parsing
+         const codeBlockExec = /^\`{3}([\s\S]*?)\`{3}$/gm.exec(line)
+         if (codeBlockExec) {
+            // if ol-running, then close it off
+            if (isOLRunning) {
+               htmlResult.push("</ol>")
+               isOLRunning = false
+            }
+            // if ul-running, then close it off
+            if (isULRunning) {
+               htmlResult.push("</ul>")
+               isULRunning = false
+            }
+
+            const [wholeCodeBlock, codeBlockContent] = codeBlockExec
+            htmlResult.push(`<pre data-line='${index}'><code>${codeBlockContent}</code></pre>`)
+            continue
+         }
+
+         // list parsing
+         const ulExec = /^[\-\*\+][\s]+(.+)$/g.exec(line)
+         const olExec = /^\d. (.+)$/g.exec(line)
+
+         if (ulExec) {
+            // if ol-running, then close it off
+            if (isOLRunning) {
+               htmlResult.push("</ol>")
+               isOLRunning = false
+            }
+
+            // start fresh ul
+            if (!isULRunning) {
+               htmlResult.push(`<ul data-line='${index}'>`)
+               isULRunning = true
+            }
+
+            const [wholeUl, ulContent] = ulExec
+            let parsedUlContent = this.parseAllInlineElementsWithinAnElement([ulContent])
+            htmlResult.push(`<li data-line='${index}'>${parsedUlContent}</li>`)
+         }
+         else if (olExec) {
+            // if ul-running, then close it off
+            if (isULRunning) {
+               htmlResult.push("</ul>")
+               isULRunning = false
+            }
+
+            // start fresh ol
+            if (!isOLRunning) {
+               htmlResult.push(`<ol data-line='${index}'>`)
+               isOLRunning = true
+            }
+
+            const [wholeOl, olContent] = olExec
+            let parsedOlContent = this.parseAllInlineElementsWithinAnElement([olContent])
+            htmlResult.push(`<li data-line='${index}'>${parsedOlContent}</li>`)
+         } else {
+            if (isOLRunning) {
+               htmlResult.push("</ol>")
+               isOLRunning = false
+            }
+            if (isULRunning) {
+               htmlResult.push("</ul>")
+               isULRunning = false
+            }
+
+            // heading parsing
+            const headingExec = /^(#{1,3}) (.+)$/g.exec(line)
+            if (headingExec) {
+               const [wholeHeading, headingVariant, headingContent] = headingExec
+               let parsedHeadingContent = this.parseAllInlineElementsWithinAnElement([headingContent])
+
+               if (headingVariant == '#') {
+                  htmlResult.push(`<h1 data-line='${index}'>${parsedHeadingContent}</h1>`)
+               } else if (headingVariant == "##") {
+                  htmlResult.push(`<h2 data-line='${index}'>${parsedHeadingContent}</h2>`)
+               } else if (headingVariant == "###") {
+                  htmlResult.push(`<h3 data-line='${index}'>${parsedHeadingContent}</h3>`)
+               }
+               continue
+            }
+
+            // blockquote parsing
+            const blockquoteExec = /^> (.+)$/g.exec(line)
+            if (blockquoteExec) {
+               const [wholeBlockquote, blockquoteContent] = blockquoteExec
+               htmlResult.push(`<blockquote data-line='${index}'>${blockquoteContent}</blockquote>`)
+               continue
+            }
+
+
+            // hr parsing
+            const hrExec = /^[\s]*[-*_]{3,}[\s]*$/g.exec(line)
+            if (hrExec) {
+               htmlResult.push(`<hr data-line='${index}'/>`)
+               continue
+            }
+
+            const splittedLines = line.split("\n\n")   // To count multiple lines with \n as single paragraph. Which allows to write one paragraph in multiple lines.
+
+            for (const content of splittedLines) {
+               // img parsing
+               const imgExec = /^!\[(.+?)\]\((.+?)\)/gm.exec(content)
+               if (imgExec) {
+                  const [wholeImg, imgAlt, imgSrc] = imgExec
+                  htmlResult.push(`<img data-line='${index}' src='${imgSrc}' alt='${imgAlt}' />`)
+                  continue
+               }
+
+               if (content.trim()) {
+                  // if content is valid html tag then insert as it is.
+                  const tagExec = /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(content)
+                  if (tagExec) {
+                     const [wholeHtmlTag] = tagExec
+                     htmlResult.push(wholeHtmlTag)
+                  } else {
+                     // parsing everything as paragraph
+                     const paragraph = this.parseAllInlineElementsWithinAnElement([content])
+                     htmlResult.push(`<p data-line='${index}'>${paragraph}</p>`)
+                  }
+               }
+            }
+         }
+      }
+      if (isOLRunning) {
+         htmlResult.push("</ol>")
+         isOLRunning = false
+      }
+      if (isULRunning) {
+         htmlResult.push("</ul>")
+         isULRunning = false
+      }
+
+      return htmlResult.join("\n")
    }
 
    parse(markdown: string) {
@@ -79,7 +265,9 @@ class MarkdownParser {
       // *this is italic*
       html = html.replace(this.rules.bold, startWhiteSpace + '<strong>$1</strong>')
       html = html.replace(this.rules.italic, startWhiteSpace + '<em>$1</em>')
+      html = html.replace(this.rules.codeBlock, startWhiteSpace + '<code>$1</code>')
       html = html.replace(this.rules.code, startWhiteSpace + '<code>$1</code>')
+      html = this.parseLinks(startWhiteSpace + html)
       return html
    }
 
@@ -168,7 +356,7 @@ class MarkdownParser {
          const isLastIndex = elementMarkdownStringLine.length > 1 ? index == elementMarkdownStringLine.length - 1 : false
          let preWhitespace = isLastIndex ? " " : ""
 
-         if (this.rules.bold.test(item) || this.rules.italic.test(item) || this.rules.code.test(item)) {
+         if (this.rules.bold.test(item) || this.rules.italic.test(item) || this.rules.codeBlock.test(item) || this.rules.code.test(item) || this.rules.link.test(item)) {
             let mappedItem = this.parseInlineFormatting(item, preWhitespace)
             return acc += preWhitespace + mappedItem
          }
@@ -184,20 +372,46 @@ class MarkdownParser {
       const lines = html.split('\n')
       const result: string[] = []
       let currentParagraph: string[] = []
+      let preTagContent: string[] = []
 
       for (const line of lines) {
          const trimmedLine = line.trim()
+
+         const isStartingWithPreTag = preTagStartRegx.exec(line)
+         const isEndingWithPreTag = preTagEndRegx.exec(line)
+
+         if (isStartingWithPreTag && isEndingWithPreTag) {
+            result.push(line)
+            preTagContent = []
+            continue
+         }
+         if (isStartingWithPreTag && !isEndingWithPreTag) {
+            preTagContent = []
+            preTagContent.push(line)
+            continue
+         }
+         if (!isStartingWithPreTag && isEndingWithPreTag) {
+            preTagContent.push(line)
+            result.push(preTagContent.join("\n"))
+            preTagContent = []
+            continue
+         }
+         if (preTagContent.length > 0) {
+            preTagContent.push(line)
+            continue
+         }
+
 
          // skip empty lines and already processed elements
          if (trimmedLine === '' || trimmedLine.startsWith('<') || trimmedLine.includes('</')) {
             // if trimmedLine is encountered, the close the current-paragraph
             if (currentParagraph.length > 0) {
                let joinedStr = this.parseAllInlineElementsWithinAnElement(currentParagraph)
+               // console.log(joinedStr)
                result.push("<p>" + joinedStr + "</p>")
 
                currentParagraph = []
             }
-
             // add the line as-is (already running tags)
             result.push(this.parseAllInlineElementsWithinAnElement([line]))
          } else {
@@ -211,7 +425,9 @@ class MarkdownParser {
          let joinedStr = this.parseAllInlineElementsWithinAnElement(currentParagraph)
          result.push("<p>" + joinedStr + "</p>")
       }
-
       return result.join('\n')
    }
 }
+let preTagStartRegx = /(\s?)<pre>/g
+
+let preTagEndRegx = /<\/pre>(\s?)/g
