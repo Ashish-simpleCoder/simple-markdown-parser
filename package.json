@@ -1,0 +1,19 @@
+{
+  "name": "simple-markdown-parser",
+  "version": "1.0.0",
+  "description": "A simple markdown parser in Javascript",
+  "scripts": {
+    "watch": "rolldown -c rolldown.config.ts --watch",
+    "build": "rolldown -c rolldown.config.ts"
+  },
+  "keywords": [
+    "markdown parser",
+    "markdown parser in js"
+  ],
+  "author": "ashish-simpleCoder",
+  "license": "MIT",
+  "packageManager": "pnpm@10.12.4",
+  "devDependencies": {
+    "rolldown": "1.0.0-beta.34"
+  }
+}

@@ -3,17 +3,16 @@
 The universal truth : **One punch man s-3 is not coming**
 
 
-
 ## UL
 - *Blast* is coming in **One punch man**....
 - **God level threat** is coming soon....
 
 ## OL
-1. Building side projects and practicing are great way to becoming a great developer.
+1. Building side projects and practicing are great ways to becoming a great developer.
 2. You are *not* building anything so I am. 
 
 ## Code
-` I code`
+`MCP server` is future.
 
 ## link
 [google.com](github.com)
@@ -24,15 +23,13 @@ The universal truth : **One punch man s-3 is not coming**
 ## Codeblock
 ```this is super awesome```
 
-## Hr
-----
 
 I am ashish-simpleCoder
 
 ## Block quote
 > blocking quote
 
-# h1 adsa
+# h1
 ## H2 
 ## h3
 
@@ -40,8 +37,6 @@ I am ashish-simpleCoder
 simple pragraph.
 
 another simple paragraph.
-
-## some random h2
 
 
 Below is another UL
