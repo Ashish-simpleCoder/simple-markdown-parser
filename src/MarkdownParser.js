@@ -53,7 +53,7 @@ var MarkdownParser = class {
 				continue;
 			}
 			const ulExec = /^[\-\*\+][\s]+(.+)$/g.exec(line);
-			const olExec = /^\d. (.+)$/g.exec(line);
+			const olExec = /^\d+. (.+)$/g.exec(line);
 			if (ulExec) {
 				if (isOLRunning) {
 					htmlResult.push("</ol>");
