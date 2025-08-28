@@ -1,8 +1,9 @@
 # Simple Markdown Parser
 
-A simple markdown parser
 
-<img width="1283" height="626" alt="image" src="https://github.com/user-attachments/assets/26bff405-0331-477a-9441-cbcf0679996e" />
+
+<img width="1358" height="653" alt="image" src="https://github.com/user-attachments/assets/08da9fd8-9eae-47c3-9d39-3119e7f3a8da" />
+
 
 
 ## It can parse followings and convert them to html:
