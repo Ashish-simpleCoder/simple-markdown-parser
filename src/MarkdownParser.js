@@ -37,7 +37,7 @@ var MarkdownParser = class {
 			codeBlocks.push(match);
 			return `${placeholder}${codeBlocks.length - 1}${placeholder}`;
 		});
-		let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm);
+		let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm);
 		const mappedResult = result.filter((section) => {
 			const newLineRegx = /^\s*$/g;
 			return !newLineRegx.exec(section);
