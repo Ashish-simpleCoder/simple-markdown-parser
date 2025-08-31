@@ -56,7 +56,7 @@ class MarkdownParser {
       // 5. ol
       // 6. line-terminator (needed to split content present with codeblock to make them paragraphs)
       // 7. codeblock-placeholder
-      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm)
+      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm)
 
       // Restore code blocks in the results
       const mappedResult = result.filter(section => {
