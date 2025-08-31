@@ -16,7 +16,7 @@ var MarkdownParser = class {
 			link: /\[(.+?)\]\((.+?)\)/g,
 			code: /`(.+?)`/g,
 			codeBlock: /```([\s\S]*?)```/g,
-			image: /!\[(.+?)\]\((.+?)\)/g
+			image: /!\[(.+?)\]\((.+?)\){?(width=\d+ height=\d+)?\}?/g
 		}
 	};
 	execFn = {
@@ -156,7 +156,7 @@ var MarkdownParser = class {
 			let preWhitespace = isLastIndex ? " " : "";
 			let parsedItemWithRegx = item;
 			if (this.rules.inlineItem.image.test(parsedItemWithRegx)) {
-				parsedItemWithRegx = item.replace(this.rules.inlineItem.image, preWhitespace + `<img src='$2' alt='$1' />`);
+				parsedItemWithRegx = item.replace(this.rules.inlineItem.image, preWhitespace + `<img src='$2' alt='$1' $3 />`);
 			}
 			if (this.rules.inlineItem.codeBlock.test(parsedItemWithRegx)) {
 				parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.codeBlock, preWhitespace + "<code>$1</code>");

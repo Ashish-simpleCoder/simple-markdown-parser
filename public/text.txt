@@ -2,37 +2,55 @@
 
 The universal truth : **One punch man s-3 is not coming**
 
+# h1
+## h3 
+### h3
+
 
 ## UL
-- *Blast* is coming in **One punch man**....
+- *Blast* is coming in **One** *punch* **man**....
 - **God level threat** is coming soon....
 
 ## OL
 1. Building side projects and practicing are great ways to becoming a great developer.
 2. You are *not* building anything so I am. 
 
-## Code
-`MCP server` is future.
+## Codeblock
+
+Simple inline codeblock 
+```Javascript``` is subset of `Typescript`. 
+
+Full codeblock
+```
+p {
+  color: red;
+}
+```
+
+## Blockquote
+> An example of blockquote
+
+### HR
+---
+
+## Code, Italic, Bold
+`MCP server` is future. 
+
+This pragraph has *Italic*, **Bold** and ***Mixed*** formatting. 
+
+**bold-text**, *italic-text*, ***mixed-text***.
 
 ## link
-[google.com](github.com)
+Here is the link of [Github](https://github.com)
 
 ## Image
+### Image without width and height dimension
 ![ashish-simpleCoder](https://avatars.githubusercontent.com/u/62009244?v=4)
-
-## Codeblock
-```this is super awesome```
+### Image with width and height dimension
+![ashish-simpleCoder](https://avatars.githubusercontent.com/u/62009244?v=4){width=200 height=200}
 
 
 I am ashish-simpleCoder
-
-## Block quote
-> blocking quote
-
-# h1
-## H2 
-## h3
-
 
 simple pragraph.
 
