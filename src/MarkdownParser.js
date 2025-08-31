@@ -127,12 +127,6 @@ var MarkdownParser = class {
 				}
 				const splittedLines = line.split("\n\n");
 				for (const content of splittedLines) {
-					const imgExec = /^!\[(.+?)\]\((.+?)\)/gm.exec(content);
-					if (imgExec) {
-						const [wholeImg, imgAlt, imgSrc] = imgExec;
-						htmlResult.push(`<img data-line='${index}' src='${imgSrc}' alt='${imgAlt}' />`);
-						continue;
-					}
 					if (content.trim()) {
 						const tagExec = this.execFn.htmlTag(content);
 						if (tagExec) {
@@ -156,23 +150,28 @@ var MarkdownParser = class {
 		}
 		return htmlResult.join("\n");
 	}
-	parseInlineFormatting(html, startWhiteSpace = "") {
-		html = html.replace(this.rules.inlineItem.bold, startWhiteSpace + "<strong>$1</strong>");
-		html = html.replace(this.rules.inlineItem.italic, startWhiteSpace + "<em>$1</em>");
-		html = html.replace(this.rules.inlineItem.link, startWhiteSpace + "<a href=\"$2\">$1</a>");
-		return html;
-	}
 	parseAllInlineElementsWithinAnElement(elementMarkdownStringLine) {
 		let joinedStr = elementMarkdownStringLine.reduce((acc, item, index) => {
 			const isLastIndex = elementMarkdownStringLine.length > 1 ? index == elementMarkdownStringLine.length - 1 : false;
 			let preWhitespace = isLastIndex ? " " : "";
 			let parsedItemWithRegx = item;
-			if (this.rules.inlineItem.codeBlock.test(item)) {
-				parsedItemWithRegx = item.replace(this.rules.inlineItem.codeBlock, preWhitespace + "<code>$1</code>");
-			} else if (this.rules.inlineItem.code.test(item)) {
-				parsedItemWithRegx = item.replace(this.rules.inlineItem.code, preWhitespace + "<code>$1</code>");
-			} else if (this.rules.inlineItem.bold.test(item) || this.rules.inlineItem.italic.test(item) || this.rules.inlineItem.link.test(item)) {
-				parsedItemWithRegx = this.parseInlineFormatting(item, preWhitespace);
+			if (this.rules.inlineItem.image.test(parsedItemWithRegx)) {
+				parsedItemWithRegx = item.replace(this.rules.inlineItem.image, preWhitespace + `<img src='$2' alt='$1' />`);
+			}
+			if (this.rules.inlineItem.codeBlock.test(parsedItemWithRegx)) {
+				parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.codeBlock, preWhitespace + "<code>$1</code>");
+			}
+			if (this.rules.inlineItem.code.test(parsedItemWithRegx)) {
+				parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.code, preWhitespace + "<code>$1</code>");
+			}
+			if (this.rules.inlineItem.bold.test(parsedItemWithRegx)) {
+				parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.bold, preWhitespace + "<strong>$1</strong>");
+			}
+			if (this.rules.inlineItem.italic.test(parsedItemWithRegx)) {
+				parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.italic, preWhitespace + "<em>$1</em>");
+			}
+			if (this.rules.inlineItem.link.test(parsedItemWithRegx)) {
+				parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.link, preWhitespace + "<a href=\"$2\">$1</a>");
 			}
 			acc += preWhitespace + parsedItemWithRegx;
 			return acc;
