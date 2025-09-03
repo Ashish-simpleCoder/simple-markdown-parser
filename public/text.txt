@@ -11,6 +11,15 @@ The universal truth : **One punch man s-3 is not coming**
 - *Blast* is coming in **One** *punch* **man**....
 - **God level threat** is coming soon....
 
+## List checkbox
+- [x] Javascript
+- [x] Typescript
+- [ ] Zig
+
+1. [x] MCP server
+2. [ ] LLM
+3. [ ] Agentic AI
+
 ## OL
 1. Building side projects and practicing are great ways to becoming a great developer.
 2. You are *not* building anything so I am. 
