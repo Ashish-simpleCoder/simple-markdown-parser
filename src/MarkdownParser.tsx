@@ -20,7 +20,7 @@ class MarkdownParser {
          link: /\[(.+?)\]\((.+?)\)/g,
          code: /`(.+?)`/g,
          codeBlock: /```([\s\S]*?)```/g,
-         image: /!\[(.+?)\]\((.+?)\){?(width=\d+ height=\d+)?\}?/g,
+         image: /!\[(.+?)\]\((.+?)\)({width=\d+ height=\d+})?/g,
       }
    }
    execFn = {
