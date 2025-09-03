@@ -140,7 +140,9 @@ textarea {
     left: 0;
 }
 
-
+.markdown-body .checkbox-item{
+    list-style-type: none;
+}
 
 .copy-btn {
     position: absolute;
