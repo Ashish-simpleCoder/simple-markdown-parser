@@ -15,12 +15,12 @@ div.fixed-bg {
     position: fixed;
     z-index: -1;
     inset: 0;
-    background: linear-gradient(rgb(40, 38, 44), rgb(18, 18, 26));
+    background: linear-gradient(rgb(41, 38, 48), rgb(28, 28, 41));
 }
 
 * {
-    scrollbar-color: rgb(210, 210, 210) #0f0e10 !important;
-    scrollbar-width: thin !important;
+    scrollbar-color: rgb(210, 210, 210) #1d1b1f !important;
+    scrollbar-width: auto !important;
 }
 
 p,
@@ -37,9 +37,10 @@ blockquote {
 }
 
 .main-heading {
-    text-align: center;
     font-weight: 500;
     letter-spacing: 0.1px;
+    top: 13px;
+    position: sticky;
 }
 
 .container {
@@ -62,8 +63,8 @@ textarea {
     outline: none;
 
     flex: 1;
-    height: 600px;
-    background-color: rgb(26, 26, 37);
+    height: calc(100vh - 120px);
+    background-color: rgb(47, 47, 63);
     color: rgb(240, 240, 240);
     font-family: inherit;
     resize: none;
@@ -140,7 +141,7 @@ textarea {
     left: 0;
 }
 
-.markdown-body .checkbox-item{
+.markdown-body .checkbox-item {
     list-style-type: none;
 }
 
