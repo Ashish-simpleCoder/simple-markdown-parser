@@ -4,7 +4,7 @@
   "description": "A simple markdown parser in Javascript",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "keywords": [
