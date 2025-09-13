@@ -1,4 +1,4 @@
-import { MarkdownParser } from './MarkdownParser'
+import { MarkdownParser } from '../MarkdownParser'
 
 type ListTypeToGenerate = "ol" | "ul"
 type ListItem = {

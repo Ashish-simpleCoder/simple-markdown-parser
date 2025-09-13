@@ -1,4 +1,4 @@
-import { parseList } from './parseList';
+import { parseList } from './parseList/parseList';
 
 export class MarkdownParser {
    rules = {

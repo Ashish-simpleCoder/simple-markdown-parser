@@ -3,8 +3,8 @@ import { MarkdownParser } from './MarkdownParser'
 
 export default function App() {
    useEffect(() => {
-      const textarea = document.querySelector("textarea") as HTMLTextAreaElement 
-      const viewer = document.querySelector("div.viewer") as Element 
+      const textarea = document.querySelector("textarea") as HTMLTextAreaElement
+      const viewer = document.querySelector("div.viewer") as Element
 
       fetch('/text.txt')
          .then(response => response.text())
@@ -44,7 +44,7 @@ export default function App() {
          });
       }
 
-      const observerCallback:MutationCallback = (mutations) => {
+      const observerCallback: MutationCallback = (mutations) => {
          mutations.forEach(mutation => {
             mutation.addedNodes.forEach(node => {
                if (node.nodeType === Node.ELEMENT_NODE) {
@@ -75,9 +75,18 @@ export default function App() {
       });
 
       document.querySelectorAll('pre').forEach(addCopyButton);
-   },[])
+   }, [])
 
    return (
-      <></>
+      <>
+         <div className="fixed-bg"></div>
+
+         <h1 className="main-heading">Markdown Parser</h1>
+
+         <div className="container">
+            <textarea className="markdown-editor"></textarea>
+            <div className="viewer markdown-body"></div>
+         </div>
+      </>
    )
 }
