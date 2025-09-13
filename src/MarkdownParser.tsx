@@ -1,4 +1,6 @@
-class MarkdownParser {
+import { parseList } from './parseList';
+
+export class MarkdownParser {
    rules = {
       blockItem: {
          // headers

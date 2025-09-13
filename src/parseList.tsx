@@ -1,3 +1,5 @@
+import { MarkdownParser } from './MarkdownParser'
+
 type ListTypeToGenerate = "ol" | "ul"
 type ListItem = {
     id: number
@@ -13,7 +15,7 @@ type HtmlMap = Map<number, ListItem>
 const ROOT_ID = -1
 
 
-function parseList(inputs: string[], parseListItemContent: (content: string) => string) {
+export function parseList(inputs: string[], parseListItemContent: (content: string) => string) {
     let listMap = new Map() as HtmlMap
 
     // @ts-expect-error Bypassing the type only for root

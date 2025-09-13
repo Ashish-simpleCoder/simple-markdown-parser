@@ -9,9 +9,6 @@
    <link
       href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
       rel="stylesheet">
-   <link rel="stylesheet" href="./src/style.css">
-   <script src="./src/parseList.js"></script>
-   <script src="./src/MarkdownParser.js"></script>
    <title>Simple Markdown Parser</title>
    <meta name="description" content="A simple markdown parser built in Javascript">
    <meta property="og:image" content="https://simple-markdown-parser.vercel.app/public/image.png">
@@ -22,6 +19,7 @@
 </head>
 
 <body>
+   <div id="root"></div>
    <div class="fixed-bg"></div>
 
    <h1 class="main-heading">Markdown Parser</h1>
@@ -30,78 +28,7 @@
       <textarea class="markdown-editor"></textarea>
       <div class="viewer markdown-body"></div>
    </div>
-
-
-   <script>
-      const textarea = document.querySelector("textarea")
-      const viewer = document.querySelector("div.viewer")
-
-      fetch('public/text.txt')
-         .then(response => response.text())
-         .then((data) => {
-            textarea.value = data
-            const parsedContent = Parser.splitHtmlStringByBlockElement(data)
-            let finalHtml = Parser.generateHTML_From_HtmlArrayOfString(parsedContent)
-            viewer.innerHTML = finalHtml
-         })
-
-      const Parser = new MarkdownParser()
-
-      textarea.addEventListener("input", (e) => {
-         const parsedContent = Parser.splitHtmlStringByBlockElement(e.target.value)
-         let finalHtml = Parser.generateHTML_From_HtmlArrayOfString(parsedContent)
-         viewer.innerHTML = finalHtml
-      })
-
-
-      function addCopyButton(pre) {
-         const copyBtn = document.createElement("button")
-         copyBtn.classList.add("copy-btn")
-         copyBtn.textContent = "copy"
-
-         pre.appendChild(copyBtn)
-
-         copyBtn.addEventListener('click', () => {
-            const code = pre.querySelector('code');
-            if (!code) return
-            navigator.clipboard.writeText(code.textContent)
-               .then(() => {
-                  copyBtn.textContent = 'Copied!';
-                  setTimeout(() => (copyBtn.textContent = 'Copy'), 2000);
-               })
-               .catch(err => console.error('Failed to copy:', err));
-         });
-      }
-
-      const observerCallback = (mutations) => {
-         mutations.forEach(mutation => {
-            mutation.addedNodes.forEach(node => {
-               if (node.nodeType === Node.ELEMENT_NODE) {
-                  if (node.tagName.toLowerCase() === 'pre') {
-                     addCopyButton(node);
-                  } else {
-                     node.querySelectorAll?.('pre').forEach(addCopyButton);
-                  }
-               }
-            });
-
-            mutation.removedNodes.forEach(node => {
-               if (node.nodeType === Node.ELEMENT_NODE && node.tagName.toLowerCase() === 'pre') {
-                  const btn = node.parentNode?.querySelector?.('.copy-btn');
-                  if (btn) btn.remove();
-               }
-            });
-         });
-      };
-
-      const observer = new MutationObserver(observerCallback);
-      observer.observe(document.body, {
-         childList: true,
-         subtree: true
-      });
-
-      document.querySelectorAll('pre').forEach(addCopyButton);
-   </script>
+   <script type="module" src="/src/main.tsx"></script>
 </body>
 
 </html>
