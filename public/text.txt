@@ -85,3 +85,25 @@ Below is another UL
 console.log("javascript")
 > Javascript is dynamically typed language.
 ```
+
+
+## Nested OL
+
+1. o.1
+2. o.2
+  1. o.2.1
+    1. o.2.1.1
+      1. [ ] o.2.1.1.1
+      1. [x] o.2.1.1.2
+  2. o.2.2
+3. o.3
+
+## Nested UL
+List-1
+- 1
+- 2
+  - 2.1
+    - 2.1.1
+      - 2.1.1.1
+  - 2.2
+- 3
