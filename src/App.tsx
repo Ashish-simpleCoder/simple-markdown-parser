@@ -6,7 +6,7 @@ export default function App() {
       const textarea = document.querySelector("textarea") as HTMLTextAreaElement 
       const viewer = document.querySelector("div.viewer") as Element 
 
-      fetch('public/text.txt')
+      fetch('/text.txt')
          .then(response => response.text())
          .then((data) => {
             textarea.value = data
