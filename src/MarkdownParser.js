@@ -1,5 +1,5 @@
 //#region src/MarkdownParser.tsx
-var MarkdownParser = class {
+var MarkdownParser = class MarkdownParser {
 	rules = {
 		blockItem: {
 			h1: /^# (.+)$/gm,
@@ -19,10 +19,10 @@ var MarkdownParser = class {
 			image: /!\[(.+?)\]\((.+?)\)({width=\d+ height=\d+})?/g
 		}
 	};
-	execFn = {
+	static execFn = {
 		codeBlock: (line) => /^\`{3}([\s\S]*?)\`{3}$/g.exec(line),
-		ul: (line) => /^[\-\*\+][\s](\[[\s\\x]\])?(.+)$/.exec(line),
-		ol: (line) => /^\d+.[\s](\[[\s\\x]\])?(.+)$/g.exec(line),
+		ul: (line) => /^([ ]{0,})?[\-\*\+][ ](\[[ \\x]\])?(.+)$/m.exec(line),
+		ol: (line) => /^([ ]{0,})?\d+.[ ](\[[ \\x]\])?(.+)$/m.exec(line),
 		heading: (line) => /^(#{1,3}) (.+)$/g.exec(line),
 		blockquote: (line) => /^> (.+)$/g.exec(line),
 		hr: (line) => /^[\s]*[-*_]{3,}[\s]*$/g.exec(line),
@@ -30,14 +30,14 @@ var MarkdownParser = class {
 		htmlTag: (line) => /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(line)
 	};
 	constructor() {}
-	splitByBlockElementMarkdown(html) {
+	splitHtmlStringByBlockElement(html) {
 		const codeBlocks = [];
 		const placeholder = "###CODEBLOCK###";
 		let processedString = html.replace(/\`{3}[\s\S]*?\`{3}/gm, (match) => {
 			codeBlocks.push(match);
 			return `${placeholder}${codeBlocks.length - 1}${placeholder}`;
 		});
-		let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm);
+		let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\s]{0,}[\-\*\+] +.+$|[\s]{0,}\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm);
 		const mappedResult = result.filter((section) => {
 			const newLineRegx = /^\s*$/g;
 			return !newLineRegx.exec(section);
@@ -46,92 +46,37 @@ var MarkdownParser = class {
 		});
 		return mappedResult;
 	}
-	convertToElement(html) {
+	generateHTML_From_HtmlArrayOfString(html) {
 		let htmlResult = [];
-		let isULRunning = false;
-		let isOLRunning = false;
+		let listItems = [];
 		for (let index = 0; index < html.length; index++) {
 			const line = html[index];
-			const codeBlockExec = this.execFn.codeBlock(line);
+			const codeBlockExec = MarkdownParser.execFn.codeBlock(line);
 			if (codeBlockExec) {
-				if (isOLRunning) {
-					htmlResult.push("</ol>");
-					isOLRunning = false;
-				}
-				if (isULRunning) {
-					htmlResult.push("</ul>");
-					isULRunning = false;
+				if (listItems.length > 0) {
+					const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]));
+					if (res) {
+						htmlResult.push(res.innerHTML);
+					}
+					listItems = [];
 				}
 				const [wholeCodeBlock, codeBlockContent] = codeBlockExec;
 				htmlResult.push(`<pre data-line='${index}'><code>${codeBlockContent}</code></pre>`);
 				continue;
 			}
-			const ulExec = this.execFn.ul(line);
-			const olExec = this.execFn.ol(line);
-			if (ulExec) {
-				if (isOLRunning) {
-					htmlResult.push("</ol>");
-					isOLRunning = false;
-				}
-				if (!isULRunning) {
-					htmlResult.push(`<ul data-line='${index}'>`);
-					isULRunning = true;
-				}
-				const [wholeUl, checkListGroupMatch, ulContent] = ulExec;
-				let parsedUlContent = this.parseAllInlineElementsWithinAnElement([ulContent]);
-				if (!checkListGroupMatch) {
-					htmlResult.push(`<li data-line='${index}'>${parsedUlContent}</li>`);
-				} else {
-					let input;
-					if (checkListGroupMatch == "[x]") {
-						input = `<input type='checkbox' checked />`;
-					} else if (checkListGroupMatch == "[ ]") {
-						input = `<input type='checkbox' />`;
-					}
-					htmlResult.push(`
-                  <li class='checkbox-item' data-line='${index}'>
-                     ${input}
-                     ${parsedUlContent}
-                  </li>
-               `);
-				}
-			} else if (olExec) {
-				if (isULRunning) {
-					htmlResult.push("</ul>");
-					isULRunning = false;
-				}
-				if (!isOLRunning) {
-					htmlResult.push(`<ol data-line='${index}'>`);
-					isOLRunning = true;
-				}
-				const [wholeOl, checkListGroupMatch, olContent] = olExec;
-				let parsedOlContent = this.parseAllInlineElementsWithinAnElement([olContent]);
-				if (!checkListGroupMatch) {
-					htmlResult.push(`<li data-line='${index}'>${parsedOlContent}</li>`);
-				} else {
-					let input;
-					if (checkListGroupMatch == "[x]") {
-						input = `<input type='checkbox' checked />`;
-					} else if (checkListGroupMatch == "[ ]") {
-						input = `<input type='checkbox' />`;
-					}
-					htmlResult.push(`
-                  <li class='checkbox-item' data-line='${index}'>
-                     ${input}
-                     ${parsedOlContent}
-                  </li>
-               `);
-				}
+			const ulExec = MarkdownParser.execFn.ul(line);
+			const olExec = MarkdownParser.execFn.ol(line);
+			if (ulExec || olExec) {
+				listItems.push(line);
 			} else {
-				if (isOLRunning) {
-					htmlResult.push("</ol>");
-					isOLRunning = false;
+				if (listItems.length > 0) {
+					const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]));
+					if (res) {
+						htmlResult.push(res.innerHTML);
+					}
+					listItems = [];
 				}
-				if (isULRunning) {
-					htmlResult.push("</ul>");
-					isULRunning = false;
-				}
-				const headingExec = this.execFn.heading(line);
+				const headingExec = MarkdownParser.execFn.heading(line);
 				if (headingExec) {
 					const [wholeHeading, headingVariant, headingContent] = headingExec;
 					let parsedHeadingContent = this.parseAllInlineElementsWithinAnElement([headingContent]);
@@ -144,13 +89,13 @@ var MarkdownParser = class {
 					}
 					continue;
 				}
-				const blockquoteExec = this.execFn.blockquote(line);
+				const blockquoteExec = MarkdownParser.execFn.blockquote(line);
 				if (blockquoteExec) {
 					const [wholeBlockquote, blockquoteContent] = blockquoteExec;
 					htmlResult.push(`<blockquote data-line='${index}'>${blockquoteContent}</blockquote>`);
 					continue;
 				}
-				const hrExec = this.execFn.hr(line);
+				const hrExec = MarkdownParser.execFn.hr(line);
 				if (hrExec) {
 					htmlResult.push(`<hr data-line='${index}'/>`);
 					continue;
@@ -158,7 +103,7 @@ var MarkdownParser = class {
 				const splittedLines = line.split("\n\n");
 				for (const content of splittedLines) {
 					if (content.trim()) {
-						const tagExec = this.execFn.htmlTag(content);
+						const tagExec = MarkdownParser.execFn.htmlTag(content);
 						if (tagExec) {
 							const [wholeHtmlTag] = tagExec;
 							htmlResult.push(wholeHtmlTag);
@@ -170,13 +115,12 @@ var MarkdownParser = class {
 				}
 			}
 		}
-		if (isOLRunning) {
-			htmlResult.push("</ol>");
-			isOLRunning = false;
-		}
-		if (isULRunning) {
-			htmlResult.push("</ul>");
-			isULRunning = false;
+		if (listItems.length > 0) {
+			const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]));
+			if (res) {
+				htmlResult.push(res.innerHTML);
+			}
+			listItems = [];
 		}
 		return htmlResult.join("\n");
 	}

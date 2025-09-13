@@ -23,10 +23,10 @@ class MarkdownParser {
          image: /!\[(.+?)\]\((.+?)\)({width=\d+ height=\d+})?/g,
       }
    }
-   execFn = {
+   static execFn = {
       codeBlock: (line: string) => /^\`{3}([\s\S]*?)\`{3}$/g.exec(line),
-      ul: (line: string) => /^[\-\*\+][\s](\[[\s\\x]\])?(.+)$/.exec(line),
-      ol: (line: string) => /^\d+.[\s](\[[\s\\x]\])?(.+)$/g.exec(line),
+      ul: (line: string) => /^([ ]{0,})?[\-\*\+][ ](\[[ \\x]\])?(.+)$/m.exec(line), // Putting "m" flag, because line might have "\s" characters at beginning.
+      ol: (line: string) => /^([ ]{0,})?\d+.[ ](\[[ \\x]\])?(.+)$/m.exec(line), // Putting "m" flag, because line might have "\s" characters at beginning.
       heading: (line: string) => /^(#{1,3}) (.+)$/g.exec(line),
       blockquote: (line: string) => /^> (.+)$/g.exec(line),
       hr: (line: string) => /^[\s]*[-*_]{3,}[\s]*$/g.exec(line),
@@ -38,7 +38,7 @@ class MarkdownParser {
 
    }
 
-   splitByBlockElementMarkdown(html: string) {
+   splitHtmlStringByBlockElement(html: string) {
       const codeBlocks: string[] = [];
       const placeholder = '###CODEBLOCK###';
 
@@ -56,7 +56,8 @@ class MarkdownParser {
       // 5. ol
       // 6. line-terminator (needed to split content present with codeblock to make them paragraphs)
       // 7. codeblock-placeholder
-      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\-\*\+][\s]+.+$|\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm)
+      let result = processedString.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\s]{0,}[\-\*\+] +.+$|[\s]{0,}\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm)
+
 
       // Restore code blocks in the results
       const mappedResult = result.filter(section => {
@@ -72,113 +73,47 @@ class MarkdownParser {
       return mappedResult
    }
 
-   convertToElement(html: string[]) {
+   generateHTML_From_HtmlArrayOfString(html: string[]) {
       let htmlResult: string[] = []
-
-      let isULRunning = false
-      let isOLRunning = false
+      let listItems: string[] = []
 
       for (let index = 0; index < html.length; index++) {
          const line = html[index]
 
          // code block parsing
-         const codeBlockExec = this.execFn.codeBlock(line)
+         const codeBlockExec = MarkdownParser.execFn.codeBlock(line)
          if (codeBlockExec) {
-            // if ol-running, then close it off
-            if (isOLRunning) {
-               htmlResult.push("</ol>")
-               isOLRunning = false
-            }
-            // if ul-running, then close it off
-            if (isULRunning) {
-               htmlResult.push("</ul>")
-               isULRunning = false
+            if (listItems.length > 0) {
+               const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
+               if (res) {
+                  htmlResult.push(res.innerHTML)
+               }
+               listItems = []
             }
 
             const [wholeCodeBlock, codeBlockContent] = codeBlockExec
             htmlResult.push(`<pre data-line='${index}'><code>${codeBlockContent}</code></pre>`)
             continue
          }
-
          // list parsing
-         const ulExec = this.execFn.ul(line)
-         const olExec = this.execFn.ol(line)
+         const ulExec = MarkdownParser.execFn.ul(line)
+         const olExec = MarkdownParser.execFn.ol(line)
 
-         if (ulExec) {
-            // if ol-running, then close it off
-            if (isOLRunning) {
-               htmlResult.push("</ol>")
-               isOLRunning = false
-            }
-
-            // start fresh ul
-            if (!isULRunning) {
-               htmlResult.push(`<ul data-line='${index}'>`)
-               isULRunning = true
-            }
-
-            const [wholeUl, checkListGroupMatch, ulContent] = ulExec
-            let parsedUlContent = this.parseAllInlineElementsWithinAnElement([ulContent])
-            if (!checkListGroupMatch) {
-               htmlResult.push(`<li data-line='${index}'>${parsedUlContent}</li>`)
-            } else {
-               let input
-               if (checkListGroupMatch == "[x]") {
-                  input = `<input type='checkbox' checked />`
-               } else if (checkListGroupMatch == "[ ]") {
-                  input = `<input type='checkbox' />`
-               }
-               htmlResult.push(`
-                  <li class='checkbox-item' data-line='${index}'>
-                     ${input}
-                     ${parsedUlContent}
-                  </li>
-               `)
-            }
-         }
-         else if (olExec) {
-            // if ul-running, then close it off
-            if (isULRunning) {
-               htmlResult.push("</ul>")
-               isULRunning = false
-            }
-
-            // start fresh ol
-            if (!isOLRunning) {
-               htmlResult.push(`<ol data-line='${index}'>`)
-               isOLRunning = true
-            }
-
-            const [wholeOl, checkListGroupMatch, olContent] = olExec
-            let parsedOlContent = this.parseAllInlineElementsWithinAnElement([olContent])
-            if (!checkListGroupMatch) {
-               htmlResult.push(`<li data-line='${index}'>${parsedOlContent}</li>`)
-            } else {
-               let input
-               if (checkListGroupMatch == "[x]") {
-                  input = `<input type='checkbox' checked />`
-               } else if (checkListGroupMatch == "[ ]") {
-                  input = `<input type='checkbox' />`
-               }
-               htmlResult.push(`
-                  <li class='checkbox-item' data-line='${index}'>
-                     ${input}
-                     ${parsedOlContent}
-                  </li>
-               `)
-            }
+         // ul/ol parsing
+         if (ulExec || olExec) {
+            listItems.push(line)
          } else {
-            if (isOLRunning) {
-               htmlResult.push("</ol>")
-               isOLRunning = false
-            }
-            if (isULRunning) {
-               htmlResult.push("</ul>")
-               isULRunning = false
+            // adding of the list items to htmlResult
+            if (listItems.length > 0) {
+               const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
+               if (res) {
+                  htmlResult.push(res.innerHTML)
+               }
+               listItems = []
             }
 
             // heading parsing
-            const headingExec = this.execFn.heading(line)
+            const headingExec = MarkdownParser.execFn.heading(line)
             if (headingExec) {
                const [wholeHeading, headingVariant, headingContent] = headingExec
                let parsedHeadingContent = this.parseAllInlineElementsWithinAnElement([headingContent])
@@ -194,28 +129,25 @@ class MarkdownParser {
             }
 
             // blockquote parsing
-            const blockquoteExec = this.execFn.blockquote(line)
+            const blockquoteExec = MarkdownParser.execFn.blockquote(line)
             if (blockquoteExec) {
                const [wholeBlockquote, blockquoteContent] = blockquoteExec
                htmlResult.push(`<blockquote data-line='${index}'>${blockquoteContent}</blockquote>`)
                continue
             }
 
-
             // hr parsing
-            const hrExec = this.execFn.hr(line)
+            const hrExec = MarkdownParser.execFn.hr(line)
             if (hrExec) {
                htmlResult.push(`<hr data-line='${index}'/>`)
                continue
             }
 
             const splittedLines = line.split("\n\n")   // To count multiple lines with \n as single paragraph. Which allows to write one paragraph in multiple lines.
-
             for (const content of splittedLines) {
-
                if (content.trim()) {
                   // if content is valid html tag then insert as it is.
-                  const tagExec = this.execFn.htmlTag(content)
+                  const tagExec = MarkdownParser.execFn.htmlTag(content)
                   if (tagExec) {
                      const [wholeHtmlTag] = tagExec
                      htmlResult.push(wholeHtmlTag)
@@ -228,15 +160,15 @@ class MarkdownParser {
             }
          }
       }
-      if (isOLRunning) {
-         htmlResult.push("</ol>")
-         isOLRunning = false
-      }
-      if (isULRunning) {
-         htmlResult.push("</ul>")
-         isULRunning = false
-      }
 
+      // adding of the list items to htmlResult
+      if (listItems.length > 0) {
+         const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
+         if (res) {
+            htmlResult.push(res.innerHTML)
+         }
+         listItems = []
+      }
       return htmlResult.join("\n")
    }
 

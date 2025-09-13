@@ -25,13 +25,7 @@ dist-ssr
 
 
 todo.md
-*/**/*.dev.ts
-*/**/*.dev.js
-*/**/*.dev.tsx
-*/**/*.dev.test.tsx
-*/**/*.dev.test.js
-*/**/*.dev.test.jsx
-*/**/*.dev.html
-*/**/*.dev.md
+*.dev.*
 
 .vite
+test.md
