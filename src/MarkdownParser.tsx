@@ -1,4 +1,4 @@
-import { parseList } from './parseList/parseList';
+import { listParser } from './parsers/listParser';
 
 export class MarkdownParser {
    rules = {
@@ -36,9 +36,7 @@ export class MarkdownParser {
       htmlTag: (line: string) => /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(line)
    }
 
-   constructor() {
-
-   }
+   constructor() {}
 
    splitHtmlStringByBlockElement(html: string) {
       const codeBlocks: string[] = [];
@@ -86,7 +84,7 @@ export class MarkdownParser {
          const codeBlockExec = MarkdownParser.execFn.codeBlock(line)
          if (codeBlockExec) {
             if (listItems.length > 0) {
-               const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
+               const res = listParser(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
                if (res) {
                   htmlResult.push(res.innerHTML)
                }
@@ -107,7 +105,7 @@ export class MarkdownParser {
          } else {
             // adding of the list items to htmlResult
             if (listItems.length > 0) {
-               const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
+               const res = listParser(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
                if (res) {
                   htmlResult.push(res.innerHTML)
                }
@@ -165,7 +163,7 @@ export class MarkdownParser {
 
       // adding of the list items to htmlResult
       if (listItems.length > 0) {
-         const res = parseList(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
+         const res = listParser(listItems, (content) => this.parseAllInlineElementsWithinAnElement([content]))
          if (res) {
             htmlResult.push(res.innerHTML)
          }
