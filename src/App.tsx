@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { MarkdownParser } from './MarkdownParser'
+import { BaseMarkdownParser } from './parsers/BaseMarkdownParser'
 
 export default function App() {
    useEffect(() => {
@@ -10,17 +10,16 @@ export default function App() {
          .then(response => response.text())
          .then((data) => {
             textarea.value = data
-            const parsedContent = Parser.splitHtmlStringByBlockElement(data)
-            let finalHtml = Parser.generateHTML_From_HtmlArrayOfString(parsedContent)
+            const parsedContent = BaseMarkdownParser.parsers.preParseRawMarkdownString(data)
+            let finalHtml = BaseMarkdownParser.parsers.parseRawMarkdownStringAndConvertToHtml(parsedContent)
             viewer.innerHTML = finalHtml
          })
 
-      const Parser = new MarkdownParser()
 
       textarea.addEventListener("input", (e) => {
-         //@ts-ignore
-         const parsedContent = Parser.splitHtmlStringByBlockElement(e.target.value)
-         let finalHtml = Parser.generateHTML_From_HtmlArrayOfString(parsedContent)
+         // @ts-ignore
+         const parsedContent = BaseMarkdownParser.parsers.preParseRawMarkdownString(e.target.value)
+         let finalHtml = BaseMarkdownParser.parsers.parseRawMarkdownStringAndConvertToHtml(parsedContent)
          viewer.innerHTML = finalHtml
       })
 
