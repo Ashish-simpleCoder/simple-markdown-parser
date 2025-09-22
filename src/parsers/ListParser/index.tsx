@@ -1,4 +1,4 @@
-import { BaseMarkdownParser, ListItemMarkdownToken } from './BaseMarkdownParser'
+import { BaseMarkdownParser, ListItemMarkdownToken } from '../BaseMarkdownParser'
 
 type ListItemParentElementType = "ol" | "ul"
 type ListItem = {
@@ -87,9 +87,9 @@ export class ListParser {
 
                 // Appending current listItem to it's parent
                 lastParentTagGenerated.appendChild(currentListItemChild.element)
-                if(!lastParentTagGenerated.getAttribute('data-line')){
+                if (!lastParentTagGenerated.getAttribute('data-line')) {
                     //@ts-expect-error No need to check for null value.
-                    lastParentTagGenerated.setAttribute('data-line',currentListItemChild.element.getAttribute('data-line'))
+                    lastParentTagGenerated.setAttribute('data-line', currentListItemChild.element.getAttribute('data-line'))
                 }
 
                 // Appending newly generated parent element to currentListItem's original parent container
@@ -156,7 +156,7 @@ export class ListParser {
             const htmlLiElement = document.createElement("li")
 
             // @ts-expect-error Not needed to parse number as string. Implicity coercion will be done
-            htmlLiElement.setAttribute('data-line',initialElementDataLine)
+            htmlLiElement.setAttribute('data-line', initialElementDataLine)
 
             if (!currentListItemToBeInserted_CheckBox_Group) {
                 htmlLiElement.innerHTML = parsedListItemHtmlContent
