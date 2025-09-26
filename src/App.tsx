@@ -6,20 +6,22 @@ export default function App() {
       const textarea = document.querySelector("textarea") as HTMLTextAreaElement
       const viewer = document.querySelector("div.viewer") as Element
 
+      const makrdownParser = new BaseMarkdownParser()
+
       fetch('/text.txt')
          .then(response => response.text())
          .then((data) => {
             textarea.value = data
-            const parsedContent = BaseMarkdownParser.parsers.preParseRawMarkdownString(data)
-            let finalHtml = BaseMarkdownParser.parsers.parseRawMarkdownStringAndConvertToHtml(parsedContent)
+            const parsedContent = makrdownParser.parsers.preProcessMarkdown(data)
+            let finalHtml = makrdownParser.parsers.convertTokensToHtml(parsedContent)
             viewer.innerHTML = finalHtml
          })
 
 
       textarea.addEventListener("input", (e) => {
          // @ts-ignore
-         const parsedContent = BaseMarkdownParser.parsers.preParseRawMarkdownString(e.target.value)
-         let finalHtml = BaseMarkdownParser.parsers.parseRawMarkdownStringAndConvertToHtml(parsedContent)
+         const parsedContent = makrdownParser.parsers.preProcessMarkdown(e.target.value)
+         let finalHtml = makrdownParser.parsers.convertTokensToHtml(parsedContent)
          viewer.innerHTML = finalHtml
       })
 
