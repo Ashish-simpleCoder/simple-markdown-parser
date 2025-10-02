@@ -1,7 +1,7 @@
 import { ListParser } from './ListParser'
 
 
-export type RawMakrdownString = string
+export type RawMarkdownString = string
 export type MarkdownStringToken = string
 export type ListItemMarkdownToken = string
 export type ParsedMarkdownHtml = string
@@ -51,7 +51,7 @@ export class BaseMarkdownParser {
 
 
     static preParserActions = {
-        replaceAllCodeBlocksWithPlaceholder(markdown: RawMakrdownString): {
+        replaceAllCodeBlocksWithPlaceholder(markdown: RawMarkdownString): {
             replacedString: MarkdownStringToken,
             codeBlockList: MarkdownStringToken[]
         } {
@@ -65,7 +65,7 @@ export class BaseMarkdownParser {
             return { replacedString, codeBlockList }
         },
 
-        splitWholeMarkdownStringByBlockElement(markdown: RawMakrdownString): MarkdownStringToken[] {
+        splitWholeMarkdownStringByBlockElement(markdown: RawMarkdownString): MarkdownStringToken[] {
             // split line-by in following sequence with below regx
             // 1. heading
             // 2. blockquote
@@ -111,7 +111,7 @@ export class BaseMarkdownParser {
             Only doing splitting, replacing codeblocks with placeholder values and filtering blocks only contaiting white-spaces from MarkdownStringToken line.
             This phase will only give MarkdownStringToken[] as output. No html injection.
         */
-        preParseRawMarkdownString: (markdown: RawMakrdownString) => {
+        preParseRawMarkdownString: (markdown: RawMarkdownString) => {
             let result = this.preParserActions.replaceAllCodeBlocksWithPlaceholder(markdown)
             let splittedRawStringList = this.preParserActions.splitWholeMarkdownStringByBlockElement(result.replacedString)
             let filteredRawStringList = this.preParserActions.filterOutBlocksOnlyContainingWhiteSpaces(splittedRawStringList)
@@ -127,7 +127,7 @@ export class BaseMarkdownParser {
         parseRawMarkdownStringAndConvertToHtml: (markdownTokens: MarkdownStringToken[]): ParsedMarkdownHtml => {
             const parsedMarkdownHtml: ParsedMarkdownHtml[] = []
             let markdownListItemArray: ListItemMarkdownToken[] = []
-            let initialListDataLine:number = -1
+            let initialListDataLine: number = -1
 
 
             for (let itemIndex = 0; itemIndex < markdownTokens.length; itemIndex++) {
@@ -173,7 +173,7 @@ export class BaseMarkdownParser {
                 // 2. List Parsing(ol/ul)
                 if (this.execFn.ol(currentRawString) || this.execFn.ul(currentRawString)) {
                     markdownListItemArray.push(currentRawString)
-                    if(initialListDataLine == -1){
+                    if (initialListDataLine == -1) {
                         initialListDataLine = itemIndex
                     }
                     continue
@@ -181,7 +181,7 @@ export class BaseMarkdownParser {
 
                 // parse current running list and close it off
                 if (markdownListItemArray.length > 0) {
-                    const listHtml = ListParser.parse(markdownListItemArray,initialListDataLine)
+                    const listHtml = ListParser.parse(markdownListItemArray, initialListDataLine)
                     if (listHtml) {
                         parsedMarkdownHtml.push(listHtml)
                     }
@@ -240,7 +240,7 @@ export class BaseMarkdownParser {
 
             // Parse any running list and close it off
             if (markdownListItemArray.length > 0) {
-                const listHtml = ListParser.parse(markdownListItemArray,initialListDataLine)
+                const listHtml = ListParser.parse(markdownListItemArray, initialListDataLine)
                 if (listHtml) {
                     parsedMarkdownHtml.push(listHtml)
                 }
@@ -256,24 +256,12 @@ export class BaseMarkdownParser {
         parseInlineMarkdownStringToken: (markdownToken: MarkdownStringToken): ParsedMarkdownHtml => {
             let parsedItemWithRegx = markdownToken
 
-            if (this.rules.inlineItem.image.test(markdownToken)) {
-                parsedItemWithRegx = markdownToken.replace(this.rules.inlineItem.image, `<img src='$2' alt='$1' $3 />`)
-            }
-            if (this.rules.inlineItem.codeBlock.test(parsedItemWithRegx)) {
-                parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.codeBlock, '<code>$1</code>')
-            }
-            if (this.rules.inlineItem.code.test(parsedItemWithRegx)) {
-                parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.code, '<code>$1</code>')
-            }
-            if (this.rules.inlineItem.bold.test(parsedItemWithRegx)) {
-                parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.bold, '<strong>$1</strong>')
-            }
-            if (this.rules.inlineItem.italic.test(parsedItemWithRegx)) {
-                parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.italic, '<em>$1</em>')
-            }
-            if (this.rules.inlineItem.link.test(parsedItemWithRegx)) {
-                parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.link, '<a href="$2">$1</a>')
-            }
+            parsedItemWithRegx = markdownToken.replace(this.rules.inlineItem.image, `<img src='$2' alt='$1' $3 />`)
+            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.codeBlock, '<code>$1</code>')
+            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.code, '<code>$1</code>')
+            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.bold, '<strong>$1</strong>')
+            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.italic, '<em>$1</em>')
+            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.link, '<a href="$2">$1</a>')
 
             return parsedItemWithRegx
         }
