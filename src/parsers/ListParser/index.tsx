@@ -228,10 +228,8 @@ export class ListParser {
                 if (checkboxGroup == "[x]") {
                     checkboxInput = `<input type='checkbox' checked />`
                 }
-                listElement.innerHTML = `
-                    ${checkboxInput}
-                    ${parsedContent}
-                `
+
+                listElement.innerHTML = `${checkboxInput}${parsedContent}`
             }
 
             // Determine the parent and position for this list item based on indentation

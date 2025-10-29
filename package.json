@@ -16,7 +16,8 @@
   "type": "module",
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "style-to-js": "^1.1.18"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
