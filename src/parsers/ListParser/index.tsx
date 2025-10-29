@@ -1,254 +1,330 @@
-import { BaseMarkdownParser, ListItemMarkdownToken } from '../BaseMarkdownParser'
+import { BaseMarkdownParser, ListItemToken, MarkdownToken } from '../BaseMarkdownParser'
 
-type ListItemParentElementType = "ol" | "ul"
-type ListItem = {
-    id: number
-    parentId: number
-    parentElementType: ListItemParentElementType
-    elementType: "li"
-    text: string | null
-    element: HTMLElement
-    item_whiteSpaceLength: number
-    children: number[]
+type ParentNodeType = "ol" | "ul"
+
+/**
+ * Represents a list item node in the tree structure
+ * Contains all necessary information to build hierarchical lists
+ */
+type ListNode = {
+    id: number                  // Unique identifier for this node
+    parentId: number           // ID of the parent node (-1 for root)
+    parentType: ParentNodeType // Whether parent is ordered (ol) or unordered (ul) list
+    elementType: "li"          // Always "li" for list items
+    text: string | null        // Text content of the list item
+    element: HTMLElement       // The actual HTML <li> element
+    indentLevel: number        // Indentation level (0 = root level)
+    children: number[]         // Array of child node IDs
 } | null
-type ParentOfListItem = ListItem
-type HtmlMap = Map<number, ListItem>
 
-const ROOT_ID = -1
+type NodeMap = Map<number, ListNode>
 
+// Constants for tree structure
+const ROOT_ID = -1             // Special ID for the root node
+const DEFAULT_INDENT_LEVEL = 2  // Default indentation size for nested lists
+
+/**
+ * Parser class for converting markdown list tokens into HTML list structures
+ * Handles nested lists, mixed ordered/unordered lists, and checkboxes
+ */
 export class ListParser {
     constructor() { }
 
     static actions = {
-        findParent_OfListItemObj_ToBeInserted_Based_On_Whitespace_Length: ({ listItemTree, lastInsertedListItemObj, listItemToBeInserted_Whitespace_Length }: {
-            listItemTree: HtmlMap,
-            lastInsertedListItemObj: ListItem,
-            listItemToBeInserted_Whitespace_Length: number
-        }): ParentOfListItem => {
-            let parentObj: ListItem | undefined = lastInsertedListItemObj
+        /**
+         * Finds the appropriate parent node for a new list item based on indentation
+         * Traverses up the tree until finding a node with less indentation than the new item
+         * 
+         * @param nodeMap - The current tree structure
+         * @param previousNode - The last inserted node (starting point for search)
+         * @param targetIndentLevel - Indentation level of new item
+         * @returns The parent node that should contain the new list item
+         */
+        findParentByIndent: ({
+            nodeMap,
+            previousNode,
+            targetIndentLevel
+        }: {
+            nodeMap: NodeMap,
+            previousNode: ListNode,
+            targetIndentLevel: number
+        }): ListNode => {
+            let candidateParent: ListNode | undefined = previousNode
 
-            while (parentObj) {
-                if (parentObj.item_whiteSpaceLength < listItemToBeInserted_Whitespace_Length) {
+            // Traverse up the tree to find appropriate parent
+            while (candidateParent) {
+                // If candidate has less indentation, it can be the parent
+                if (candidateParent.indentLevel < targetIndentLevel) {
                     break
                 }
-                if (parentObj.parentId) {
-                    parentObj = listItemTree.get(parentObj.parentId)
+                // Move up one level in the tree
+                if (candidateParent.parentId) {
+                    candidateParent = nodeMap.get(candidateParent.parentId)
                 }
             }
 
-            // If no parent, then ROOT will be the parent
-            if (!parentObj) {
-                return listItemTree.get(ROOT_ID)!
+            // If no suitable parent found, attach to root
+            if (!candidateParent) {
+                return nodeMap.get(ROOT_ID)!
             }
-            return parentObj!
+            return candidateParent!
         },
-        generateHTMLTree: (listItemTree: HtmlMap) => {
-            let childIds = [...listItemTree.get(ROOT_ID)!.children]
 
-            const rootFragement = new DocumentFragment()
-            let lastParentTagGenerated: HTMLElement | null = null
-            let parentIdOfPreviousalyInsertedListItem = ROOT_ID
+        /**
+         * Converts the flat node map into a hierarchical HTML structure
+         * Creates proper <ol>/<ul> containers and nests list items correctly
+         * 
+         * @param nodeMap - Map containing all list nodes
+         * @returns DocumentFragment containing the complete HTML list structure
+         */
+        buildHTMLTree: (nodeMap: NodeMap) => {
+            // Start with root's children
+            let processingQueue = nodeMap.get(ROOT_ID)!.children
 
-            while (childIds.length > 0) {
-                let didCreateNewParentElement = false
-                let currentListItemChild = listItemTree.get(childIds.shift() as any)
+            const rootFragment = new DocumentFragment()
+            let currentContainer: HTMLElement | null = null
+            let currentContainerParentId = ROOT_ID
 
-                if (!currentListItemChild) {
+            // Process all nodes breadth-first
+            while (processingQueue.length > 0) {
+                let didCreatedNewContainer = false
+                let currentNode = nodeMap.get(processingQueue.shift() as any)
+
+                // Skip invalid nodes
+                if (!currentNode) {
                     continue
                 }
 
-                const parentElementObj = listItemTree.get(currentListItemChild.parentId)
+                const parentNode = nodeMap.get(currentNode.parentId)
 
-                // 
-                if (!parentElementObj) {
+                // Skip nodes without valid parents
+                if (!parentNode) {
                     continue
                 }
 
-                // Initial Parent generation of list item
-                if (!lastParentTagGenerated) {
-                    lastParentTagGenerated = document.createElement(currentListItemChild.parentElementType)
-                    rootFragement.appendChild(lastParentTagGenerated)
+                // Create initial container for the first list item
+                if (!currentContainer) {
+                    currentContainer = document.createElement(currentNode.parentType)
+                    rootFragment.appendChild(currentContainer)
 
-                    didCreateNewParentElement = true
-                    parentIdOfPreviousalyInsertedListItem = currentListItemChild.parentId
+                    didCreatedNewContainer = true
+                    currentContainerParentId = currentNode.parentId
                 }
-                // if parentId or parentElement type changes
-                // prettier-ignore
-                else if (parentIdOfPreviousalyInsertedListItem != currentListItemChild.parentId || lastParentTagGenerated.nodeName.toLocaleLowerCase() != currentListItemChild.parentElementType) {
-                    lastParentTagGenerated = document.createElement(currentListItemChild.parentElementType)
+                // Create new container when parent changes or list type changes (ol/ul)
+                else if (currentContainerParentId != currentNode.parentId || currentContainer.nodeName.toLowerCase() != currentNode.parentType) {
+                    currentContainer = document.createElement(currentNode.parentType)
 
-                    didCreateNewParentElement = true
-                    parentIdOfPreviousalyInsertedListItem = currentListItemChild.parentId
-                }
-
-                if (!lastParentTagGenerated) {
-                    return
+                    didCreatedNewContainer = true
+                    currentContainerParentId = currentNode.parentId
                 }
 
-                // Appending current listItem to it's parent
-                lastParentTagGenerated.appendChild(currentListItemChild.element)
-                if (!lastParentTagGenerated.getAttribute('data-line')) {
+                if (!currentContainer) {
+                    continue
+                }
+
+                // Add the list item to its container
+                currentContainer.appendChild(currentNode.element)
+
+                // Set data-line attribute on container (only once)
+                if (!currentContainer.getAttribute('data-line')) {
                     //@ts-expect-error No need to check for null value.
-                    lastParentTagGenerated.setAttribute('data-line', currentListItemChild.element.getAttribute('data-line'))
+                    currentContainer.setAttribute('data-line', currentNode.element.getAttribute('data-line'))
                 }
 
-                // Appending newly generated parent element to currentListItem's original parent container
-                if (didCreateNewParentElement) {
-                    if (currentListItemChild.item_whiteSpaceLength == 0) {
-                        rootFragement.appendChild(lastParentTagGenerated)
+                // Attach the newly created container to the appropriate location
+                if (didCreatedNewContainer) {
+                    if (currentNode.indentLevel == 0) {
+                        // Top-level list goes to root fragment
+                        rootFragment.appendChild(currentContainer)
                     } else {
-                        parentElementObj.element.appendChild(lastParentTagGenerated)
+                        // Nested list goes inside the parent list item
+                        parentNode.element.appendChild(currentContainer)
                     }
                 }
 
-                // Pushing current listItem's children ids to array for iteration
-                if (currentListItemChild.children.length > 0) {
-                    childIds.push(...currentListItemChild.children)
+                // Add current item's children to processing queue
+                if (currentNode.children.length > 0) {
+                    processingQueue.push(...currentNode.children)
                 }
             }
 
-            return rootFragement
+            return rootFragment
         }
     }
 
-    static parse(listItemMarkdownTokens: ListItemMarkdownToken[], initialElementDataLine: number) {
-
-        if (!listItemMarkdownTokens || listItemMarkdownTokens.length == 0) {
+    /**
+     * Main parsing function that converts markdown list tokens to HTML
+     * 
+     * @param tokens - Array of parsed markdown list tokens
+     * @param startingLineNumber - Starting line number for data-line attributes
+     * @returns HTML string of the complete list structure, or null if no valid tokens
+     */
+    static parse(tokens: ListItemToken[], startingLineNumber: number, processInlineFormatting:(token: MarkdownToken) => string) {
+        // Validate input
+        if (!tokens || tokens.length == 0) {
             return null
         }
 
-        const listItemTree = new Map() as HtmlMap
-        // @ts-expect-error Bypassing the type only for root
-        listItemTree.set(ROOT_ID, { parentId: null, children: [] })
+        // Initialize the tree structure with a root node
+        const nodeMap = new Map() as NodeMap
+        // @ts-expect-error Bypassing the type only for root - root node has special properties
+        nodeMap.set(ROOT_ID, { parentId: null, children: [] })
 
-        let lastInsertedListItemObj: ListItem | undefined
-        let currentListItemId = 1
+        let lastInsertedNode: ListNode | undefined
+        let nextNodeId = 1
+        let currentLineNumber = startingLineNumber
 
-        while (listItemMarkdownTokens.length > 0) {
-            let currentListItemToken = listItemMarkdownTokens.shift()
-            let currentListItemParentElementType: ListItemParentElementType | null = null
-            let newListItemToInsertObj: ListItem = null
+        // Process each markdown list token sequentially
+        while (tokens.length > 0) {
+            let token = tokens.shift()
+            let listType: ParentNodeType | null = null
+            let newNode: ListNode = null
 
-
-            if (!currentListItemToken) {
+            if (!token) {
                 continue
             }
 
-
-            if (BaseMarkdownParser.execFn.ol(currentListItemToken)) {
-                currentListItemParentElementType = "ol"
+            // Determine if this is an ordered or unordered list item
+            if (BaseMarkdownParser.execFn.ol(token)) {
+                listType = "ol"
             }
-            if (BaseMarkdownParser.execFn.ul(currentListItemToken)) {
-                currentListItemParentElementType = "ul"
+            if (BaseMarkdownParser.execFn.ul(token)) {
+                listType = "ul"
             }
 
-            if (!currentListItemParentElementType) {
+            // Skip tokens that aren't valid list items
+            if (!listType) {
                 continue
             }
 
-            const currentListItemExec = BaseMarkdownParser.execFn[currentListItemParentElementType](currentListItemToken)
-            if (!currentListItemExec) {
+            // Extract components from the markdown token using regex
+            const regexMatch = BaseMarkdownParser.execFn[listType](token)
+            if (!regexMatch) {
                 continue
             }
 
-            const [match, currentListItemToBeInserted_Whitespace_Group, currentListItemToBeInserted_CheckBox_Group, currentListItemToBeInserted_Content_Group] = currentListItemExec
-            const parsedListItemHtmlContent = BaseMarkdownParser.parsers.parseInlineMarkdownStringToken(currentListItemToBeInserted_Content_Group)
-            const htmlLiElement = document.createElement("li")
+            // Parse the regex match groups:
+            // Group 1: Indentation (spaces/tabs)
+            // Group 2: Checkbox syntax ([x], [ ], etc.)
+            // Group 3: Text content
+            const [fullMatch, indentGroup, checkboxGroup, contentGroup] = regexMatch
 
-            // @ts-expect-error Not needed to parse number as string. Implicity coercion will be done
-            htmlLiElement.setAttribute('data-line', initialElementDataLine)
+            // Parse inline markdown within the list item content
+            const parsedContent = processInlineFormatting(contentGroup)
 
-            if (!currentListItemToBeInserted_CheckBox_Group) {
-                htmlLiElement.innerHTML = parsedListItemHtmlContent
+            // Create the HTML list item element
+            const listElement = document.createElement("li")
+
+            // @ts-expect-error Not needed to parse number as string. Implicit coercion will be done
+            listElement.setAttribute('data-line', currentLineNumber)
+
+            // Handle checkbox syntax or plain content
+            if (!checkboxGroup) {
+                // Regular list item - just add the parsed content
+                listElement.innerHTML = parsedContent
             } else {
-                let input = `<input type='checkbox' />`
-                if (currentListItemToBeInserted_CheckBox_Group == "[x]") {
-                    input = `<input type='checkbox' checked />`
+                // Checkbox list item - create checkbox input with appropriate checked state
+                let checkboxInput = `<input type='checkbox' />`
+                if (checkboxGroup == "[x]") {
+                    checkboxInput = `<input type='checkbox' checked />`
                 }
-                htmlLiElement.innerHTML = `
-                    ${input}
-                    ${parsedListItemHtmlContent}
-                `
+
+                listElement.innerHTML = `${checkboxInput}${parsedContent}`
             }
 
-            // If no whitespace, then insert it as root child
-            if (!currentListItemToBeInserted_Whitespace_Group || !lastInsertedListItemObj) {
-                newListItemToInsertObj = {
-                    id: currentListItemId,
+            // Determine the parent and position for this list item based on indentation
+
+            // Case 1: First item or no indentation - attach to root
+            if (!indentGroup || !lastInsertedNode) {
+                newNode = {
+                    id: nextNodeId,
                     parentId: ROOT_ID,
-                    parentElementType: currentListItemParentElementType,
+                    parentType: listType,
                     elementType: "li",
-                    text: htmlLiElement.textContent,
-                    element: htmlLiElement,
-                    item_whiteSpaceLength: 0,
+                    text: listElement.textContent,
+                    element: listElement,
+                    indentLevel: 0,
                     children: [],
                 }
             } else {
-                if (lastInsertedListItemObj.item_whiteSpaceLength == currentListItemToBeInserted_Whitespace_Group.length) {
-                    newListItemToInsertObj = {
-                        id: currentListItemId,
-                        parentId: lastInsertedListItemObj.parentId,
-                        parentElementType: currentListItemParentElementType,
+                const currentIndentLevel = indentGroup.length
+
+                // Case 2: Same indentation level - sibling to previous item
+                if (lastInsertedNode.indentLevel == currentIndentLevel) {
+                    newNode = {
+                        id: nextNodeId,
+                        parentId: lastInsertedNode.parentId,
+                        parentType: listType,
                         elementType: "li",
-                        text: htmlLiElement.textContent,
-                        element: htmlLiElement,
-                        item_whiteSpaceLength: currentListItemToBeInserted_Whitespace_Group.length,
+                        text: listElement.textContent,
+                        element: listElement,
+                        indentLevel: currentIndentLevel,
                         children: [],
                     }
                 }
-                /*
-                    If currentItem nesting level is less than previous inserted item,
-                    then find the correct parent of currentItem from the listMap
-                */
-                else if (currentListItemToBeInserted_Whitespace_Group.length < lastInsertedListItemObj.item_whiteSpaceLength) {
-                    const currentListItemParentObj = this.actions.findParent_OfListItemObj_ToBeInserted_Based_On_Whitespace_Length({
-                        listItemTree,
-                        lastInsertedListItemObj: lastInsertedListItemObj,
-                        listItemToBeInserted_Whitespace_Length: currentListItemToBeInserted_Whitespace_Group.length
+                // Case 3: Less indentation - find appropriate parent up the tree
+                else if (currentIndentLevel < lastInsertedNode.indentLevel) {
+                    const parentNode = this.actions.findParentByIndent({
+                        nodeMap: nodeMap,
+                        previousNode: lastInsertedNode,
+                        targetIndentLevel: currentIndentLevel
                     })!
 
-                    newListItemToInsertObj = {
-                        id: currentListItemId,
-                        parentId: currentListItemParentObj.id,
-                        parentElementType: currentListItemParentElementType,
+                    newNode = {
+                        id: nextNodeId,
+                        parentId: parentNode.id,
+                        parentType: listType,
                         elementType: "li",
-                        text: htmlLiElement.textContent,
-                        element: htmlLiElement,
-                        item_whiteSpaceLength: currentListItemToBeInserted_Whitespace_Group.length,
+                        text: listElement.textContent,
+                        element: listElement,
+                        indentLevel: currentIndentLevel,
                         children: [],
                     }
-                } else if (currentListItemToBeInserted_Whitespace_Group.length >= lastInsertedListItemObj.item_whiteSpaceLength + 2) {
-                    newListItemToInsertObj = {
-                        id: currentListItemId,
-                        parentId: lastInsertedListItemObj.id,
-                        parentElementType: currentListItemParentElementType,
+                }
+                // Case 4: More indentation - child of previous item
+                else if (currentIndentLevel >= lastInsertedNode.indentLevel + DEFAULT_INDENT_LEVEL) {
+                    newNode = {
+                        id: nextNodeId,
+                        parentId: lastInsertedNode.id,
+                        parentType: listType,
                         elementType: "li",
-                        text: htmlLiElement.textContent,
-                        element: htmlLiElement,
-                        item_whiteSpaceLength: currentListItemToBeInserted_Whitespace_Group.length,
+                        text: listElement.textContent,
+                        element: listElement,
+                        indentLevel: currentIndentLevel,
                         children: [],
                     }
                 }
             }
-            if (newListItemToInsertObj) {
-                listItemTree.get(newListItemToInsertObj.parentId)?.children.push(currentListItemId)
-                listItemTree.set(newListItemToInsertObj?.id, newListItemToInsertObj)
-                lastInsertedListItemObj = newListItemToInsertObj
+
+            // Add the new node to the tree structure
+            if (newNode) {
+                // Add this node's ID to its parent's children array
+                nodeMap.get(newNode.parentId)?.children.push(nextNodeId)
+                // Store the node in the tree map
+                nodeMap.set(newNode.id, newNode)
+                // Update reference to last inserted node
+                lastInsertedNode = newNode
             }
 
-            // Increment counter for id
-            currentListItemId++
-            initialElementDataLine++
+            // Increment counters for next iteration
+            nextNodeId++
+            currentLineNumber++
         }
 
-        if (listItemTree.size == 0) {
+        // Return null if no valid nodes were created
+        if (nodeMap.size == 0) {
             return null
         }
-        const rootFragementOfList = this.actions.generateHTMLTree(listItemTree)
-        if (rootFragementOfList) {
-            const element = document.createElement("div")
-            element.appendChild(rootFragementOfList)
-            return element.innerHTML
+
+        // Generate the final HTML structure from the node tree
+        const htmlTree = this.actions.buildHTMLTree(nodeMap)
+        if (!htmlTree) {
+            return null
         }
+
+        // Wrap in a div and return as HTML string
+        const wrapper = document.createElement("div")
+        wrapper.appendChild(htmlTree)
+        return wrapper.innerHTML
     }
 }

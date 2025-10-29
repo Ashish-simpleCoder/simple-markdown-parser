@@ -1,18 +1,30 @@
+import convertDomToReact from './convertDomToReact'
 import { ListParser } from './ListParser'
 
-
 export type RawMarkdownString = string
-export type MarkdownStringToken = string
-export type ListItemMarkdownToken = string
-export type ParsedMarkdownHtml = string
+export type MarkdownToken = string
+export type ListItemToken = string
+export type ParsedHtml = string
 
+// Constants for temporary replacements during parsing
 export const PARSER_TOKENS = {
     codeBlockPlaceholder: '###CODEBLOCK###'
 }
 
+/**
+ * Core markdown parser that converts markdown strings to HTML
+ * Supports headings, lists, blockquotes, code blocks, and inline elements formatting
+ * 
+ * Processing Pipeline:
+ * 1. Pre-processing: Replace code blocks with placeholders, split by blocks, remove whitespace blocks
+ * 2. Main parsing: Convert each token to appropriate HTML element
+ * 3. Inline parsing: Handle formatting within elements (bold, italic, links, etc.)
+ */
 export class BaseMarkdownParser {
-    constructor() { }
-
+    /**
+     * Regex patterns for matching different markdown elements
+     * Separated into block-level and inline elements for clarity
+     */
     static rules = {
         blockItem: {
             h1: /^# (.+)$/gm,
@@ -26,245 +38,298 @@ export class BaseMarkdownParser {
             hr: /^[\s]*[-*_]{3,}[\s]*$/g,
         },
         inlineItem: {
-            // inline-element and they can be present anywhere, even inside any other elements, so regex is according to that-------------
+            // Inline elements that can appear within other elements
             bold: /\*\*(.+?)\*\*/g,
             italic: /\*(.+?)\*/g,
             link: /\[(.+?)\]\((.+?)\)/g,
             code: /`(.+?)`/g,
             codeBlock: /```([\s\S]*?)```/g,
-            image: /!\[(.+?)\]\((.+?)\)({width=\d+ height=\d+})?/g,
+            image: /!\[(.+?)\]\((.+?)\)({(width=\d+ height=\d+)})?/g,
         }
     }
 
+    /**
+     * Execution functions that test and extract content from markdown tokens
+     * Each function returns regex match results or null
+     */
     static execFn = {
-        codeBlock: (line: MarkdownStringToken) => /^\`{3}([\s\S]*?)\`{3}$/g.exec(line),
-        ul: (line: MarkdownStringToken) => /^([ ]{0,})?[\-\*\+][ ](\[[ \\x]\])?(.+)$/m.exec(line), // Putting "m" flag, because line might have "\s" characters at beginning.
-        ol: (line: MarkdownStringToken) => /^([ ]{0,})?\d+.[ ](\[[ \\x]\])?(.+)$/m.exec(line), // Putting "m" flag, because line might have "\s" characters at beginning.
-        heading: (line: MarkdownStringToken) => /^(#{1,3}) (.+)$/g.exec(line),
-        blockquote: (line: MarkdownStringToken) => /^> (.+)$/g.exec(line),
-        hr: (line: MarkdownStringToken) => /^[\s]*[-*_]{3,}[\s]*$/g.exec(line),
-        img: (line: MarkdownStringToken) => /^!\[(.+?)\]\((.+?)\)/g.exec(line),
-        htmlTag: (line: MarkdownStringToken) => /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(line),
-
-        newLine: (line: MarkdownStringToken) => /^\s*$/g.exec(line),
+        codeBlock: (token: MarkdownToken) => /^\`{3}([\s\S]*?)\`{3}$/g.exec(token),
+        // Putting "m" flag, because line might have "\s"(whitespace) characters at beginning.
+        ul: (token: MarkdownToken) => /^([ ]{0,})?[\-\*\+][ ](\[[ \\x]\])?(.+)$/m.exec(token),
+        ol: (token: MarkdownToken) => /^([ ]{0,})?\d+.[ ](\[[ \\x]\])?(.+)$/m.exec(token),
+        heading: (token: MarkdownToken) => /^(#{1,3}) (.+)$/g.exec(token),
+        blockquote: (token: MarkdownToken) => /^> (.+)$/g.exec(token),
+        hr: (token: MarkdownToken) => /^[\s]*[-*_]{3,}[\s]*$/g.exec(token),
+        img: (token: MarkdownToken) => /^!\[(.+?)\]\((.+?)\)/g.exec(token),
+        htmlTag: (token: MarkdownToken) => /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(token),
+        newLine: (token: MarkdownToken) => /^\s*$/g.exec(token),
     }
 
+    /**
+     * Pre-processing actions that prepare raw markdown for parsing
+     */
+    preProcessingActions = {
+        /**
+         * Temporarily replaces code blocks with numbered placeholders
+         * This prevents code block content from being processed as markdown
+         * 
+         * @param markdown - Raw markdown string
+         * @returns Object with processed string and array of extracted code blocks
+         */
+        replaceCodeBlocksWithPlaceholders: (markdown: RawMarkdownString) => {
+            const extractedCodeBlocks: MarkdownToken[] = [];
 
-    static preParserActions = {
-        replaceAllCodeBlocksWithPlaceholder(markdown: RawMarkdownString): {
-            replacedString: MarkdownStringToken,
-            codeBlockList: MarkdownStringToken[]
-        } {
-            const codeBlockList: MarkdownStringToken[] = [];
-
-            let replacedString = markdown.replace(/\`{3}[\s\S]*?\`{3}/gm, (match) => {
-                codeBlockList.push(match)
-
-                return `${PARSER_TOKENS.codeBlockPlaceholder}${codeBlockList.length - 1}${PARSER_TOKENS.codeBlockPlaceholder}`
+            const processedString = markdown.replace(/\`{3}[\s\S]*?\`{3}/gm, (match) => {
+                extractedCodeBlocks.push(match)
+                return `${PARSER_TOKENS.codeBlockPlaceholder}${extractedCodeBlocks.length - 1}${PARSER_TOKENS.codeBlockPlaceholder}`
             })
-            return { replacedString, codeBlockList }
+
+            return { processedString, extractedCodeBlocks }
         },
 
-        splitWholeMarkdownStringByBlockElement(markdown: RawMarkdownString): MarkdownStringToken[] {
-            // split line-by in following sequence with below regx
-            // 1. heading
-            // 2. blockquote
-            // 3. hr
-            // 4. ul
-            // 5. ol
-            // 6. line-terminator (needed to split content present with codeblock to make them paragraphs)
-            // 7. codeblock-placeholder
-            let splittedHtml = markdown.split(/^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\s]{0,}[\-\*\+] +.+$|[\s]{0,}\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm)
+        /**
+         * Splits markdown into tokens based on block-level elements
+         * Uses combined regex to identify different markdown block types
+         * 
+         * Order of splitting:
+         * 1. Headings (h1-h3)
+         * 2. Blockquotes  
+         * 3. Horizontal rules
+         * 4. Unordered lists
+         * 5. Ordered lists
+         * 6. Line terminators
+         * 7. Code block placeholders
+         * 
+         * @param markdown - Markdown string to split
+         * @returns Array of markdown tokens
+         */
+        splitIntoBlockTokens: (markdown: RawMarkdownString) => {
+            const blockSplitPattern = /^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\s]{0,}[\-\*\+] +.+$|[\s]{0,}\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm
 
-            return splittedHtml
+            return markdown.split(blockSplitPattern)
         },
 
-        filterOutBlocksOnlyContainingWhiteSpaces: (markdownTokens: MarkdownStringToken[]): MarkdownStringToken[] => {
-            const filteredResult = markdownTokens.filter(section => {
-                // remove all of the blocks containing only white-space characters
-                return !this.execFn.newLine(section)
+        /**
+         * Removes tokens that contain only whitespace characters
+         * Cleans up the token array after splitting
+         * 
+         * @param tokens - Array of markdown tokens
+         * @returns Filtered array without whitespace-only tokens
+         */
+        filterWhitespaceTokens: (tokens: MarkdownToken[]) => {
+            return tokens.filter(token => {
+                return !BaseMarkdownParser.execFn.newLine(token)
             })
-            return filteredResult
         },
 
-        restoreCodeBlocksFromPlaceholders: (markdownTokens: MarkdownStringToken[], codeBlockList: MarkdownStringToken[]): MarkdownStringToken[] => {
-            const mappedResult = markdownTokens.map(section => {
-                return section.replace(new RegExp(`${PARSER_TOKENS.codeBlockPlaceholder}(\\d+)${PARSER_TOKENS.codeBlockPlaceholder}`, 'g'),
-                    (match, index) => `${codeBlockList[index]}`
+        /**
+         * Restores original code blocks from numbered placeholders
+         * Final step in pre-processing that puts code blocks back
+         * 
+         * @param tokens - Array of tokens with placeholders
+         * @param codeBlocks - Array of original code block content
+         * @returns Array with restored code blocks
+         */
+        restoreCodeBlocksFromPlaceholders: (tokens: MarkdownToken[], codeBlocks: MarkdownToken[]) => {
+            return tokens.map(token => {
+                return token.replace(
+                    new RegExp(`${PARSER_TOKENS.codeBlockPlaceholder}(\\d+)${PARSER_TOKENS.codeBlockPlaceholder}`, 'g'),
+                    (match, index) => codeBlocks[index]
                 )
             })
-            return mappedResult
         },
     }
 
-    static parsers = {
-        /* 
-            phases of Parsing
-            
-            1. preParseRawMarkdownString
-            2. parseRawMarkdownStringAndConvertToHtml
-        */
+    /**
+     * Main parsing functions that handle the conversion pipeline
+     */
+    parsers = {
+        /**
+         * Phase 1: Pre-processes raw markdown string into clean tokens
+         * 
+         * Steps:
+         * 1. Replace code blocks with placeholders
+         * 2. Split markdown by block elements  
+         * 3. Filter out whitespace-only tokens
+         * 4. Restore code blocks from placeholders
+         * 
+         * @param markdown - Raw markdown input string
+         * @returns Array of clean markdown tokens ready for HTML conversion
+         */
+        preProcessMarkdown: (markdown: RawMarkdownString) => {
+            const { processedString, extractedCodeBlocks } = this.preProcessingActions.replaceCodeBlocksWithPlaceholders(markdown)
+            const splitTokens = this.preProcessingActions.splitIntoBlockTokens(processedString)
+            const filteredTokens = this.preProcessingActions.filterWhitespaceTokens(splitTokens)
+            const finalTokens = this.preProcessingActions.restoreCodeBlocksFromPlaceholders(filteredTokens, extractedCodeBlocks)
 
-
-        /* 
-            1. preParseRawString
-            Only doing splitting, replacing codeblocks with placeholder values and filtering blocks only contaiting white-spaces from MarkdownStringToken line.
-            This phase will only give MarkdownStringToken[] as output. No html injection.
-        */
-        preParseRawMarkdownString: (markdown: RawMarkdownString) => {
-            let result = this.preParserActions.replaceAllCodeBlocksWithPlaceholder(markdown)
-            let splittedRawStringList = this.preParserActions.splitWholeMarkdownStringByBlockElement(result.replacedString)
-            let filteredRawStringList = this.preParserActions.filterOutBlocksOnlyContainingWhiteSpaces(splittedRawStringList)
-            let rawStringList = this.preParserActions.restoreCodeBlocksFromPlaceholders(filteredRawStringList, result.codeBlockList)
-
-            return rawStringList as MarkdownStringToken[]
+            return finalTokens
         },
 
+        /**
+         * Phase 2: Converts markdown tokens to HTML elements
+         * 
+         * Processing order (important for precedence):
+         * 1. Code blocks (highest precedence - content should not be processed)
+         * 2. Lists (ol/ul) - collected and batch processed
+         * 3. Headings (h1-h3)
+         * 4. Blockquotes
+         * 5. Horizontal rules  
+         * 6. Paragraphs (default case - handles inline formatting)
+         * 
+         * @param tokens - Array of pre-processed markdown tokens
+         * @returns Complete HTML string
+         */
+        convertTokensToHtml: (tokens: MarkdownToken[]) => {
+            const htmlElements: ParsedHtml[] = []
+            let listItems: ListItemToken[] = []
+            let listStartIndex: number = -1
 
-        /*
-            2. parseRawMarkdownStringAndConvertToHtml
-        */
-        parseRawMarkdownStringAndConvertToHtml: (markdownTokens: MarkdownStringToken[]): ParsedMarkdownHtml => {
-            const parsedMarkdownHtml: ParsedMarkdownHtml[] = []
-            let markdownListItemArray: ListItemMarkdownToken[] = []
-            let initialListDataLine: number = -1
+            for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+                const currentToken = tokens[tokenIndex]
 
+                // 1. Code Block Processing (highest priority - no further parsing)
+                const codeBlockMatch = BaseMarkdownParser.execFn.codeBlock(currentToken)
+                if (codeBlockMatch) {
+                    // Flush any pending list items before processing code block
+                    this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
+                    listItems = []
+                    listStartIndex = -1
 
-            for (let itemIndex = 0; itemIndex < markdownTokens.length; itemIndex++) {
-                /*
-                    Parsing in below order
-                    1. codeblock
-                    2. List(ol/ul)
-                    3. heading
-                    4. blockquote
-                    5. hr(horizontal rule)
-                    6. Paragraph
-                        - image
-                        - inline codeblock
-                        - code
-                        - bold
-                        - italic
-                        - link
-                        - and all text
-                */
-                const currentRawString = markdownTokens[itemIndex]
-
-
-                // 1. Codeblock Parsing 
-                const codeBlockExecResult = this.execFn.codeBlock(currentRawString)
-                if (codeBlockExecResult) {
-
-                    // parse current running list and close it off
-                    if (markdownListItemArray.length > 0) {
-                        const listHtml = ListParser.parse(markdownListItemArray, initialListDataLine)
-                        if (listHtml) {
-                            parsedMarkdownHtml.push(listHtml)
-                        }
-                        markdownListItemArray = []
-                        initialListDataLine = -1
-                    }
-
-                    const [wholeCodeBlock, codeBlockContent] = codeBlockExecResult
-                    parsedMarkdownHtml.push(`<pre data-line='${itemIndex}'><code>${codeBlockContent}</code></pre>`)
-
+                    const [, codeContent] = codeBlockMatch
+                    htmlElements.push(`<pre data-line='${tokenIndex}'><code>${codeContent}</code></pre>`)
                     continue
                 }
 
-                // 2. List Parsing(ol/ul)
-                if (this.execFn.ol(currentRawString) || this.execFn.ul(currentRawString)) {
-                    markdownListItemArray.push(currentRawString)
-                    if (initialListDataLine == -1) {
-                        initialListDataLine = itemIndex
+                // 2. List Processing (ol/ul) - collect items for batch processing
+                if (BaseMarkdownParser.execFn.ol(currentToken) || BaseMarkdownParser.execFn.ul(currentToken)) {
+                    listItems.push(currentToken)
+                    if (listStartIndex === -1) {
+                        listStartIndex = tokenIndex
                     }
                     continue
                 }
 
-                // parse current running list and close it off
-                if (markdownListItemArray.length > 0) {
-                    const listHtml = ListParser.parse(markdownListItemArray, initialListDataLine)
-                    if (listHtml) {
-                        parsedMarkdownHtml.push(listHtml)
-                    }
-                    markdownListItemArray = []
-                    initialListDataLine = -1
-                }
+                // Flush any pending list items before processing other elements
+                this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
+                listItems = []
+                listStartIndex = -1
 
-                // 3. Heading Parsing
-                const headingExecResult = this.execFn.heading(currentRawString)
-                if (headingExecResult) {
-                    const [wholeHeading, headingVariant, headingContent] = headingExecResult
-                    let parsedHeadingContent = this.parsers.parseInlineMarkdownStringToken(headingContent)
+                // 3. Heading Processing (h1-h3)
+                const headingMatch = BaseMarkdownParser.execFn.heading(currentToken)
+                if (headingMatch) {
+                    const [, headingLevel, headingText] = headingMatch
+                    const processedText = this.parsers.processInlineFormatting(headingText)
 
-                    if (headingVariant == '#') {
-                        parsedMarkdownHtml.push(`<h1 data-line='${itemIndex}'>${parsedHeadingContent}</h1>`)
-                    } else if (headingVariant == "##") {
-                        parsedMarkdownHtml.push(`<h2 data-line='${itemIndex}'>${parsedHeadingContent}</h2>`)
-                    } else if (headingVariant == "###") {
-                        parsedMarkdownHtml.push(`<h3 data-line='${itemIndex}'>${parsedHeadingContent}</h3>`)
-                    }
+                    const tagName = `h${headingLevel.length}`
+                    htmlElements.push(`<${tagName} data-line='${tokenIndex}'>${processedText}</${tagName}>`)
                     continue
                 }
 
-                // 4. Blockquote Parsing
-                const blockquoteExecResult = this.execFn.blockquote(currentRawString)
-                if (blockquoteExecResult) {
-                    const [wholeBlockquote, blockquoteContent] = blockquoteExecResult
-                    parsedMarkdownHtml.push(`<blockquote data-line='${itemIndex}'>${blockquoteContent}</blockquote>`)
+                // 4. Blockquote Processing
+                const blockquoteMatch = BaseMarkdownParser.execFn.blockquote(currentToken)
+                if (blockquoteMatch) {
+                    const [, blockquoteText] = blockquoteMatch
+                    htmlElements.push(`<blockquote data-line='${tokenIndex}'>${blockquoteText}</blockquote>`)
                     continue
                 }
 
-                // 5. Horizontal Rule(hr) Parsing
-                const hrExec = this.execFn.hr(currentRawString)
-                if (hrExec) {
-                    parsedMarkdownHtml.push(`<hr data-line='${itemIndex}'/>`)
+                // 5. Horizontal Rule Processing
+                const hrMatch = BaseMarkdownParser.execFn.hr(currentToken)
+                if (hrMatch) {
+                    htmlElements.push(`<hr data-line='${tokenIndex}'/>`)
                     continue
                 }
 
-                // 6. Paragraph parsing
-                const splittedLines = currentRawString.split("\n\n")   // To count multiple lines with \n as single paragraph. Which allows to write one paragraph in multiple lines.
-                for (const content of splittedLines) {
-                    if (content.trim()) {
-                        // If content is valid html tag then insert as it is.
-                        const tagExec = this.execFn.htmlTag(content)
-                        if (tagExec) {
-                            const [wholeHtmlTag] = tagExec
-                            parsedMarkdownHtml.push(wholeHtmlTag)
-                        } else {
-                            const paragraph = this.parsers.parseInlineMarkdownStringToken(content)
-                            parsedMarkdownHtml.push(`<p data-line='${itemIndex}'>${paragraph}</p>`)
-                        }
-                    }
-                }
-
+                // 6. Paragraph Processing (default case)
+                this.parsers.processParagraphToken(currentToken, tokenIndex, htmlElements)
             }
 
-            // Parse any running list and close it off
-            if (markdownListItemArray.length > 0) {
-                const listHtml = ListParser.parse(markdownListItemArray, initialListDataLine)
+            // Flush any remaining list items
+            this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
+
+
+            // Parse html string to valid htmlDom object
+            const childNodes= new DOMParser().parseFromString(htmlElements.join("\n"),'text/html')?.querySelector("body")?.childNodes
+            const reactElements = childNodes ? convertDomToReact(childNodes) : []
+            return reactElements
+        },
+
+        /**
+         * Processes a token as paragraph(s), handling multi-line content and HTML tags
+         * 
+         * @param token - The markdown token to process
+         * @param tokenIndex - Index for data-line attribute
+         * @param htmlElements - Array to append results to
+         */
+        processParagraphToken: (token: MarkdownToken, tokenIndex: number, htmlElements: ParsedHtml[]) => {
+            // Split by double newlines to handle multiple paragraphs in one token
+            const paragraphSections = token.split("\n\n")
+
+            for (const section of paragraphSections) {
+                const trimmedSection = section.trim()
+                if (!trimmedSection) continue
+
+                // Check if content is already a valid HTML tag
+                const htmlTagMatch = BaseMarkdownParser.execFn.htmlTag(trimmedSection)
+                if (htmlTagMatch) {
+                    const [htmlTag] = htmlTagMatch
+                    htmlElements.push(htmlTag)
+                } else {
+                    // Process as regular paragraph with inline formatting
+                    const processedContent = this.parsers.processInlineFormatting(trimmedSection)
+                    htmlElements.push(`<p data-line='${tokenIndex}'>${processedContent}</p>`)
+                }
+            }
+        },
+
+        /**
+         * Helper function to flush pending list items to HTML
+         * 
+         * @param listItems - Accumulated list item tokens
+         * @param startIndex - Starting index for data-line attribute
+         * @param htmlElements - Array to append results to
+         */
+        flushPendingList: (listItems: ListItemToken[], startIndex: number, htmlElements: ParsedHtml[]) => {
+            if (listItems.length > 0) {
+                const listHtml = ListParser.parse(listItems, startIndex, this.parsers.processInlineFormatting)
                 if (listHtml) {
-                    parsedMarkdownHtml.push(listHtml)
+                    htmlElements.push(listHtml)
                 }
-                markdownListItemArray = []
-                initialListDataLine = -1
             }
-
-
-            return parsedMarkdownHtml.join("\n")
         },
 
+        /**
+         * Processes inline markdown formatting within text content
+         * Handles bold, italic, links, code, images, etc.
+         * 
+         * Processing order matters - more specific patterns should be processed first
+         * 
+         * @param token - Text content to process
+         * @returns HTML with inline formatting applied
+         */
+        processInlineFormatting: (token: MarkdownToken) => {
+            let processedContent = token
 
-        parseInlineMarkdownStringToken: (markdownToken: MarkdownStringToken): ParsedMarkdownHtml => {
-            let parsedItemWithRegx = markdownToken
+            // Process inline elements in order of specificity
+            processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.image, `<img src='$2' alt='$1' $4 />`)
+            processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.codeBlock, '<code>$1</code>')
+            processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.code, '<code>$1</code>')
+            processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.bold, '<strong>$1</strong>')
+            processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.italic, '<em>$1</em>')
+            processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.link, '<a href="$2">$1</a>')
 
-            parsedItemWithRegx = markdownToken.replace(this.rules.inlineItem.image, `<img src='$2' alt='$1' $3 />`)
-            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.codeBlock, '<code>$1</code>')
-            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.code, '<code>$1</code>')
-            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.bold, '<strong>$1</strong>')
-            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.italic, '<em>$1</em>')
-            parsedItemWithRegx = parsedItemWithRegx.replace(this.rules.inlineItem.link, '<a href="$2">$1</a>')
-
-            return parsedItemWithRegx
+            return processedContent
         }
+    }
 
+    /**
+     * Main public method to parse markdown string to HTML
+     * 
+     * @param markdown - Raw markdown string to parse
+     * @returns Parsed HTML string
+     */
+    parse(markdown: RawMarkdownString): React.ReactNode[] {
+        const tokens = this.parsers.preProcessMarkdown(markdown)
+        return this.parsers.convertTokensToHtml(tokens)
     }
 }
