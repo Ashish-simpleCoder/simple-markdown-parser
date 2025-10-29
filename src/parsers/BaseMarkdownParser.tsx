@@ -1,3 +1,4 @@
+import convertDomToReact from './convertDomToReact'
 import { ListParser } from './ListParser'
 
 export type RawMarkdownString = string
@@ -43,7 +44,7 @@ export class BaseMarkdownParser {
             link: /\[(.+?)\]\((.+?)\)/g,
             code: /`(.+?)`/g,
             codeBlock: /```([\s\S]*?)```/g,
-            image: /!\[(.+?)\]\((.+?)\)({width=\d+ height=\d+})?/g,
+            image: /!\[(.+?)\]\((.+?)\)({(width=\d+ height=\d+)})?/g,
         }
     }
 
@@ -246,7 +247,11 @@ export class BaseMarkdownParser {
             // Flush any remaining list items
             this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
 
-            return htmlElements.join("\n")
+
+            // Parse html string to valid htmlDom object
+            const childNodes= new DOMParser().parseFromString(htmlElements.join("\n"),'text/html')?.querySelector("body")?.childNodes
+            const reactElements = childNodes ? convertDomToReact(childNodes) : []
+            return reactElements
         },
 
         /**
@@ -306,7 +311,7 @@ export class BaseMarkdownParser {
             let processedContent = token
 
             // Process inline elements in order of specificity
-            processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.image, `<img src='$2' alt='$1' $3 />`)
+            processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.image, `<img src='$2' alt='$1' $4 />`)
             processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.codeBlock, '<code>$1</code>')
             processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.code, '<code>$1</code>')
             processedContent = processedContent.replace(BaseMarkdownParser.rules.inlineItem.bold, '<strong>$1</strong>')
@@ -323,7 +328,7 @@ export class BaseMarkdownParser {
      * @param markdown - Raw markdown string to parse
      * @returns Parsed HTML string
      */
-    parse(markdown: RawMarkdownString): ParsedHtml {
+    parse(markdown: RawMarkdownString): React.ReactNode[] {
         const tokens = this.parsers.preProcessMarkdown(markdown)
         return this.parsers.convertTokensToHtml(tokens)
     }
