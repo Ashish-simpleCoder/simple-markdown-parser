@@ -184,12 +184,15 @@ export class BaseMarkdownParser {
             const htmlElements: ParsedHtml[] = []
             let listItems: ListItemToken[] = []
             let listStartIndex: number = -1
+            let skippedTokensCount = 0
 
             for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
                 const currentToken = tokens[tokenIndex]
+                const orderedTokenIndex = tokenIndex-skippedTokensCount
 
                 // Skip Markdown comments
                 if(BaseMarkdownParser.execFn.comments(currentToken)){
+                  skippedTokensCount++
                   continue
                 }
 
@@ -202,7 +205,7 @@ export class BaseMarkdownParser {
                     listStartIndex = -1
 
                     const [, codeContent] = codeBlockMatch
-                    htmlElements.push(`<pre data-line='${tokenIndex}'><code>${codeContent}</code></pre>`)
+                    htmlElements.push(`<pre data-line='${orderedTokenIndex}'><code>${codeContent}</code></pre>`)
                     continue
                 }
 
@@ -210,7 +213,7 @@ export class BaseMarkdownParser {
                 if (BaseMarkdownParser.execFn.ol(currentToken) || BaseMarkdownParser.execFn.ul(currentToken)) {
                     listItems.push(currentToken)
                     if (listStartIndex === -1) {
-                        listStartIndex = tokenIndex
+                        listStartIndex = orderedTokenIndex
                     }
                     continue
                 }
@@ -227,7 +230,7 @@ export class BaseMarkdownParser {
                     const processedText = this.parsers.processInlineFormatting(headingText)
 
                     const tagName = `h${headingLevel.length}`
-                    htmlElements.push(`<${tagName} data-line='${tokenIndex}'>${processedText}</${tagName}>`)
+                    htmlElements.push(`<${tagName} data-line='${orderedTokenIndex}'>${processedText}</${tagName}>`)
                     continue
                 }
 
@@ -235,19 +238,19 @@ export class BaseMarkdownParser {
                 const blockquoteMatch = BaseMarkdownParser.execFn.blockquote(currentToken)
                 if (blockquoteMatch) {
                     const [, blockquoteText] = blockquoteMatch
-                    htmlElements.push(`<blockquote data-line='${tokenIndex}'>${blockquoteText}</blockquote>`)
+                    htmlElements.push(`<blockquote data-line='${orderedTokenIndex}'>${blockquoteText}</blockquote>`)
                     continue
                 }
 
                 // 5. Horizontal Rule Processing
                 const hrMatch = BaseMarkdownParser.execFn.hr(currentToken)
                 if (hrMatch) {
-                    htmlElements.push(`<hr data-line='${tokenIndex}'/>`)
+                    htmlElements.push(`<hr data-line='${orderedTokenIndex}'/>`)
                     continue
                 }
 
                 // 6. Paragraph Processing (default case)
-                this.parsers.processParagraphToken(currentToken, tokenIndex, htmlElements)
+                this.parsers.processParagraphToken(currentToken, orderedTokenIndex, htmlElements)
             }
 
             // Flush any remaining list items
