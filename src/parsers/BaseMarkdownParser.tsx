@@ -63,6 +63,7 @@ export class BaseMarkdownParser {
         img: (token: MarkdownToken) => /^!\[(.+?)\]\((.+?)\)/g.exec(token),
         htmlTag: (token: MarkdownToken) => /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(token),
         newLine: (token: MarkdownToken) => /^\s*$/g.exec(token),
+        comments: (token : MarkdownToken) => /^(\s+)?<!--(.+)-->/g.exec(token)
     }
 
     /**
@@ -186,6 +187,11 @@ export class BaseMarkdownParser {
 
             for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
                 const currentToken = tokens[tokenIndex]
+
+                // Skip Markdown comments
+                if(BaseMarkdownParser.execFn.comments(currentToken)){
+                  continue
+                }
 
                 // 1. Code Block Processing (highest priority - no further parsing)
                 const codeBlockMatch = BaseMarkdownParser.execFn.codeBlock(currentToken)
