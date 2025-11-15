@@ -14,7 +14,7 @@ export const PARSER_TOKENS = {
 /**
  * Core markdown parser that converts markdown strings to HTML
  * Supports headings, lists, blockquotes, code blocks, and inline elements formatting
- * 
+ *
  * Processing Pipeline:
  * 1. Pre-processing: Replace code blocks with placeholders, split by blocks, remove whitespace blocks
  * 2. Main parsing: Convert each token to appropriate HTML element
@@ -73,7 +73,7 @@ export class BaseMarkdownParser {
         /**
          * Temporarily replaces code blocks with numbered placeholders
          * This prevents code block content from being processed as markdown
-         * 
+         *
          * @param markdown - Raw markdown string
          * @returns Object with processed string and array of extracted code blocks
          */
@@ -91,16 +91,16 @@ export class BaseMarkdownParser {
         /**
          * Splits markdown into tokens based on block-level elements
          * Uses combined regex to identify different markdown block types
-         * 
+         *
          * Order of splitting:
          * 1. Headings (h1-h3)
-         * 2. Blockquotes  
+         * 2. Blockquotes
          * 3. Horizontal rules
          * 4. Unordered lists
          * 5. Ordered lists
          * 6. Line terminators
          * 7. Code block placeholders
-         * 
+         *
          * @param markdown - Markdown string to split
          * @returns Array of markdown tokens
          */
@@ -113,7 +113,7 @@ export class BaseMarkdownParser {
         /**
          * Removes tokens that contain only whitespace characters
          * Cleans up the token array after splitting
-         * 
+         *
          * @param tokens - Array of markdown tokens
          * @returns Filtered array without whitespace-only tokens
          */
@@ -126,7 +126,7 @@ export class BaseMarkdownParser {
         /**
          * Restores original code blocks from numbered placeholders
          * Final step in pre-processing that puts code blocks back
-         * 
+         *
          * @param tokens - Array of tokens with placeholders
          * @param codeBlocks - Array of original code block content
          * @returns Array with restored code blocks
@@ -147,13 +147,13 @@ export class BaseMarkdownParser {
     parsers = {
         /**
          * Phase 1: Pre-processes raw markdown string into clean tokens
-         * 
+         *
          * Steps:
          * 1. Replace code blocks with placeholders
-         * 2. Split markdown by block elements  
+         * 2. Split markdown by block elements
          * 3. Filter out whitespace-only tokens
          * 4. Restore code blocks from placeholders
-         * 
+         *
          * @param markdown - Raw markdown input string
          * @returns Array of clean markdown tokens ready for HTML conversion
          */
@@ -168,15 +168,15 @@ export class BaseMarkdownParser {
 
         /**
          * Phase 2: Converts markdown tokens to HTML elements
-         * 
+         *
          * Processing order (important for precedence):
          * 1. Code blocks (highest precedence - content should not be processed)
          * 2. Lists (ol/ul) - collected and batch processed
          * 3. Headings (h1-h3)
          * 4. Blockquotes
-         * 5. Horizontal rules  
+         * 5. Horizontal rules
          * 6. Paragraphs (default case - handles inline formatting)
-         * 
+         *
          * @param tokens - Array of pre-processed markdown tokens
          * @returns Complete HTML string
          */
@@ -265,7 +265,7 @@ export class BaseMarkdownParser {
 
         /**
          * Processes a token as paragraph(s), handling multi-line content and HTML tags
-         * 
+         *
          * @param token - The markdown token to process
          * @param tokenIndex - Index for data-line attribute
          * @param htmlElements - Array to append results to
@@ -293,7 +293,7 @@ export class BaseMarkdownParser {
 
         /**
          * Helper function to flush pending list items to HTML
-         * 
+         *
          * @param listItems - Accumulated list item tokens
          * @param startIndex - Starting index for data-line attribute
          * @param htmlElements - Array to append results to
@@ -310,9 +310,9 @@ export class BaseMarkdownParser {
         /**
          * Processes inline markdown formatting within text content
          * Handles bold, italic, links, code, images, etc.
-         * 
+         *
          * Processing order matters - more specific patterns should be processed first
-         * 
+         *
          * @param token - Text content to process
          * @returns HTML with inline formatting applied
          */
@@ -333,7 +333,7 @@ export class BaseMarkdownParser {
 
     /**
      * Main public method to parse markdown string to HTML
-     * 
+     *
      * @param markdown - Raw markdown string to parse
      * @returns Parsed HTML string
      */
