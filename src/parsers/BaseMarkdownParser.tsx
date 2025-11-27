@@ -1,3 +1,4 @@
+import { ASTGenerator } from './AstGenerator'
 import convertDomToReact from './convertDomToReact'
 import { ListParser } from './ListParser'
 
@@ -252,6 +253,89 @@ export class BaseMarkdownParser {
             const childNodes= new DOMParser().parseFromString(htmlElements.join("\n"),'text/html')?.querySelector("body")?.childNodes
             const reactElements = childNodes ? convertDomToReact(childNodes) : []
             return reactElements
+        },
+        
+        convertTokensToHtml2: (tokens: MarkdownToken[]) => {
+            const htmlElements: ParsedHtml[] = [];
+            let listItems: ListItemToken[] = [];
+            let listStartIndex: number = -1;
+      
+            const astGenerator = new ASTGenerator();
+            const astNode = astGenerator.parse(tokens);
+      
+            for (let tokenIndex = 0; tokenIndex < astNode.children.length; tokenIndex++) {
+              const currentToken = astGenerator.AstMap.get(astNode.children[tokenIndex]);
+      
+              if (!currentToken) continue;
+      
+              const nodeType = currentToken.nodeType;
+      
+              // 1. Code Block Processing (highest priority - no further parsing)
+              if (nodeType == "codeblock") {
+                this.parsers.flushPendingList(listItems, listStartIndex, htmlElements);
+                listItems = [];
+                listStartIndex = -1;
+      
+                htmlElements.push(`<pre data-line='${tokenIndex}'><code>${currentToken.textContent}</code></pre>`);
+                continue;
+              }
+      
+              // 2. List Processing (ol/ul) - collect items for batch processing
+              if (nodeType == "ol" || nodeType == "ul") {
+                if (currentToken.textContent) {
+                  listItems.push(currentToken.textContent);
+                }
+                if (listStartIndex === -1) {
+                  listStartIndex = tokenIndex;
+                }
+                continue;
+              }
+      
+              // Flush any pending list items before processing other elements
+              this.parsers.flushPendingList(listItems, listStartIndex, htmlElements);
+              listItems = [];
+              listStartIndex = -1;
+      
+              // 3. Heading Processing (h1-h3)
+              if (nodeType == "h1" || nodeType == "h2" || nodeType == "h3") {
+                if (currentToken.textContent) {
+                  const processedText = this.parsers.processInlineFormatting(currentToken.textContent);
+      
+                  const tagName = nodeType;
+                  htmlElements.push(`<${tagName} data-line='${tokenIndex}'>${processedText}</${tagName}>`);
+                }
+                continue;
+              }
+      
+              // 4. Blockquote Processing
+              if (nodeType == "blockquote") {
+                htmlElements.push(`<blockquote data-line='${tokenIndex}'>${currentToken.textContent}</blockquote>`);
+                continue;
+              }
+      
+              // 5. Horizontal Rule Processing
+              if (nodeType == "hr") {
+                htmlElements.push(`<hr data-line='${tokenIndex}'/>`);
+                continue;
+              }
+      
+              // 6. Paragraph Processing (default case)
+              if (currentToken.textContent) {
+                this.parsers.processParagraphToken(currentToken.textContent, tokenIndex, htmlElements);
+              }
+            }
+      
+            // Flush any remaining list items
+            this.parsers.flushPendingList(listItems, listStartIndex, htmlElements);
+      
+            // Parse html string to valid htmlDom object
+            const childNodes = new DOMParser()
+              .parseFromString(htmlElements.join("\n"), "text/html")
+              ?.querySelector("body")?.childNodes;
+      
+            const reactElements = childNodes ? convertDomToReact(childNodes) : [];
+      
+            return reactElements;
         },
 
         /**
