@@ -13,14 +13,14 @@ export default function App() {
       .then((data) => {
         textarea.value = data;
         const parsedContent = makrdownParser.parsers.preProcessMarkdown(data);
-        let finalHtml = makrdownParser.parsers.convertTokensToHtml(parsedContent);
+        let finalHtml = makrdownParser.parsers.convertTokensToHtml2(parsedContent);
         setJsx(finalHtml);
       });
 
     textarea.addEventListener("input", (e) => {
       // @ts-ignore
       const parsedContent = makrdownParser.parsers.preProcessMarkdown(e.target.value);
-      let finalHtml = makrdownParser.parsers.convertTokensToHtml(parsedContent);
+      let finalHtml = makrdownParser.parsers.convertTokensToHtml2(parsedContent);
       setJsx(finalHtml);
     });
 
