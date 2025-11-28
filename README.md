@@ -3,10 +3,18 @@
 <img width="1358" height="653" alt="image" src="https://github.com/user-attachments/assets/08da9fd8-9eae-47c3-9d39-3119e7f3a8da" />
 
 
-## Todos
+## How It works
+<img width="3236" height="2642" alt="image" src="https://github.com/user-attachments/assets/106eaff2-9ad9-41d4-9e8d-566b39f591c3" />
 
-Checklist that I have decided to complete.
 
+## Features
+- Parse markdown into JSX.
+- Parse html present in markdown into jsx.
+- Render any amount of `ol` and `ul` list independently or nested inside each other. `No Recursion`. So it is very performant.
+- `Caching` feature for caching `ol` and `ul` list output in the `mapCache` too prevent going through re-generation of lists if they are not changed.
+- Render `checkbox` in list items.
+
+## Full feature checklist
 
 - [x] Three heading variants (#, ##, ###).
     - [x] h1
@@ -46,12 +54,12 @@ Checklist that I have decided to complete.
 
 ## Running on local
 
-1. Start Watcher
+1. Install dependencies
 ```sh
-    npm run watch
+pnpm i
 ```
 
-2. Run server
+2. Running server
 ```sh
-npx vite
+pnpm run dev
 ```
