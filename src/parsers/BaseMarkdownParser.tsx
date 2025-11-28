@@ -1,3 +1,4 @@
+import { MapCache } from '../utils/MapCache'
 import { ASTGenerator } from './AstGenerator'
 import convertDomToReact from './convertDomToReact'
 import { ListParser } from './ListParser'
@@ -22,6 +23,9 @@ export const PARSER_TOKENS = {
  * 3. Inline parsing: Handle formatting within elements (bold, italic, links, etc.)
  */
 export class BaseMarkdownParser {
+  
+  #tokenCache = new MapCache()
+  
     /**
      * Regex patterns for matching different markdown elements
      * Separated into block-level and inline elements for clarity
@@ -375,10 +379,19 @@ export class BaseMarkdownParser {
          */
         flushPendingList: (listItems: ListItemToken[], startIndex: number, htmlElements: ParsedHtml[]) => {
             if (listItems.length > 0) {
-                const listHtml = ListParser.parse(listItems, startIndex, this.parsers.processInlineFormatting)
-                if (listHtml) {
-                    htmlElements.push(listHtml)
-                }
+              const cacheKey = this.#tokenCache.generateKey('',listItems)
+                            
+              let listHtml
+              
+              if(this.#tokenCache.get(cacheKey)){
+                  listHtml = this.#tokenCache.get(cacheKey)
+              }else{
+                  listHtml = ListParser.parse(listItems, startIndex, this.parsers.processInlineFormatting)
+                  this.#tokenCache.set(cacheKey, listHtml)
+              }
+              if (listHtml) {
+                  htmlElements.push(listHtml)
+              }
             }
         },
 
