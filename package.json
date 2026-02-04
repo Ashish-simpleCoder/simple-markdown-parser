@@ -1,32 +1,44 @@
 {
-  "name": "simple-markdown-parser",
-  "version": "1.0.0",
-  "description": "A simple markdown parser in Javascript",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "keywords": [
-    "markdown parser",
-    "markdown parser in js"
-  ],
-  "author": "ashish-simpleCoder",
-  "license": "MIT",
-  "type": "module",
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "style-to-js": "^1.1.18"
-  },
-  "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.39",
-    "tailwindcss": "^3.4.4",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.1"
-  }
+   "name": "simple-markdown-parser",
+   "version": "1.0.0",
+   "description": "A simple markdown parser in Javascript",
+   "scripts": {
+      "dev": "vite",
+      "build": "vite build",
+      "preview": "vite preview",
+      "format": "prettier --write ./src ./apps/doc --cache"
+   },
+   "keywords": [
+      "markdown parser",
+      "markdown parser in js"
+   ],
+   "author": "ashish-simpleCoder",
+   "license": "MIT",
+   "type": "module",
+   "dependencies": {
+      "react": "^18.3.1",
+      "react-dom": "^18.3.1",
+      "style-to-js": "^1.1.18"
+   },
+   "devDependencies": {
+      "@types/react": "^18.3.3",
+      "@types/react-dom": "^18.3.0",
+      "@vitejs/plugin-react": "^4.3.1",
+      "autoprefixer": "^10.4.19",
+      "postcss": "^8.4.39",
+      "prettier": "^3.8.1",
+      "tailwindcss": "^3.4.4",
+      "typescript": "^5.2.2",
+      "vite": "^5.3.1"
+   },
+   "prettier": {
+      "arrowParens": "always",
+      "printWidth": 120,
+      "semi": false,
+      "endOfLine": "lf",
+      "singleQuote": true,
+      "tabWidth": 3,
+      "jsxSingleQuote": true,
+      "trailingComma": "es5"
+   }
 }
