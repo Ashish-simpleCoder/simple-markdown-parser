@@ -10,18 +10,35 @@ export const parserActions = {
     * @param markdown - Raw markdown string
     * @returns Object with processed string and array of extracted code blocks
     */
-   replaceCodeBlocksWithPlaceholders({ markdown }: { markdown: RawMarkdownString }): {
+   replaceCodeBlocksWithPlaceholders({ markdown, encode = true }: { markdown: RawMarkdownString; encode?: boolean }): {
       processedMarkdown: string
       extractedCodeBlocks: string[]
    } {
       const extractedCodeBlocks: MarkdownToken[] = []
 
       const processedMarkdown = markdown.replace(/\`{3}[\s\S]*?\`{3}/gm, (match) => {
-         extractedCodeBlocks.push(match)
+         extractedCodeBlocks.push(
+            !encode
+               ? match
+               : match
+                    .replace(/&/g, '&amp;') // must be first
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+         )
          return `${PARSER_TOKENS.codeBlockPlaceholder}${extractedCodeBlocks.length - 1}${PARSER_TOKENS.codeBlockPlaceholder}`
       })
 
       return { processedMarkdown, extractedCodeBlocks }
+   },
+   encodeCodeContent({ markdown }: { markdown: RawMarkdownString }) {
+      markdown = markdown.replace(/`(.+?)`/gm, (match) => {
+         match = match
+            .replace(/&/g, '&amp;') // must be first
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+         return match
+      })
+      return markdown
    },
    /**
     * Splits markdown into tokens based on block-level elements

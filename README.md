@@ -1,5 +1,9 @@
 # Simple Markdown Parser
 
+**Simple Markdown Parser** is a lightweight, high-performance markdown parser that converts markdown content directly into JSX. It is designed for modern React-based applications where performance, predictability, and fine-grained control over rendering are critical.
+
+The parser avoids expensive recursive strategies and instead uses **iterative list processing** with caching to efficiently render ordered and unordered lists—even when deeply nested. It also supports inline HTML within markdown, checklist items, image attributes etc.
+
 <img width="1358" height="653" alt="image" src="https://github.com/user-attachments/assets/08da9fd8-9eae-47c3-9d39-3119e7f3a8da" />
 
 
@@ -14,42 +18,50 @@
 - `Caching` feature for caching `ol` and `ul` list output in the `mapCache` too prevent going through re-generation of lists if they are not changed.
 - Render `checkbox` in list items.
 
-## Full feature checklist
 
-- [x] Three heading variants (#, ##, ###).
-    - [x] h1
-    - [x] h2
-    - [x] h3
-- [x] Inline elements -> bold(**bold**), italic(*italic*), link([text](text.com)) and code(`code`)
-- [x] Image
-    - [x] render image element
-    - [x] `alt` attr
-    - [x] dimension attr (width & height)
-- [x] OL and UL
-    - [x] simple list generation
-    - [ ] nested list generation 
-    - [x] checklist parsing
-        - [x] simple checklist
-        - [x] two states -> 1.checked, 2.unchecked 
-    - [ ] optimization
-- [x] hr
-- [x] blockquote
-- [x] codeblock
-- [x] simple paragraph
-- [ ] Parsing html content as html
-    - [ ] santizing html
-    - [ ] html parsing
-- [ ] Frontmatter
-- [ ] Custom blocks
-    - [ ] warning
-    - [ ] info
-    - [ ] error
-    - [ ] success
-    - [ ] details element
-- [ ] Table of Content(TOC)
-- [ ] Comments parsing
-- [ ] Error handling and fallback to paragraphs
+## Features & Roadmap
 
+* [x] **Markdown to JSX parsing**
+* [x] **HTML inside markdown to JSX**
+* [x] **Headings**
+  * [x] `#` → h1
+  * [x] `##` → h2
+  * [x] `###` → h3
+* [x] **Inline elements**
+  * [x] Bold (`**bold**`)
+  * [x] Italic (`*italic*`)
+  * [x] Inline code (`` `code` ``)
+  * [x] Links (`[text](url)`)
+* [x] **Images**
+  * [x] JSX image rendering
+  * [x] `alt` attribute support
+  * [x] Width & height attributes
+* [x] **Ordered & Unordered Lists (OL / UL)**
+  * [x] Simple list generation
+  * [ ] Nested list generation
+  * [x] Checklist parsing
+    * [x] Simple checklist
+    * [x] Checked & unchecked states
+  * [x] Non-recursive list rendering (high performance)
+  * [x] Cached list rendering using `mapCache`
+* [x] **Horizontal rule (`hr`)**
+* [x] **Blockquotes**
+* [x] **Code blocks**
+* [x] **Paragraph rendering**
+* [ ] **HTML parsing as real HTML**
+  * [ ] HTML sanitization
+  * [x] Basic HTML parsing
+* [ ] **Frontmatter support**
+* [ ] **Custom blocks**
+  * [ ] Warning
+  * [ ] Info
+  * [ ] Error
+  * [ ] Success
+  * [ ] Details (`<details>` element)
+* [ ] **Table of Contents (TOC)**
+* [ ] **Comment parsing**
+
+---
 
 
 ## Running on local

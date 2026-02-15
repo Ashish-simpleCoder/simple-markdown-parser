@@ -6,7 +6,7 @@
       "dev": "vite",
       "build": "vite build",
       "preview": "vite preview",
-      "format": "prettier --write ./src ./apps/doc --cache"
+      "format": "prettier --write ./src --cache"
    },
    "keywords": [
       "markdown parser",
