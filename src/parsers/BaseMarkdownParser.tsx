@@ -52,6 +52,7 @@ export class BaseMarkdownParser {
       splitIntoBlockTokens: parserActions.splitIntoBlockTokens,
       filterWhitespaceTokens: parserActions.filterWhitespaceTokens,
       restoreCodeBlocksFromPlaceholders: parserActions.restoreCodeBlocksFromPlaceholders,
+      encodeCodeContent: parserActions.encodeCodeContent,
    }
 
    /**
@@ -74,9 +75,10 @@ export class BaseMarkdownParser {
          let tokens: string[] = [markdown]
          let extractedBlocks: string[] = []
 
+         tokens = [this.preParserActions.encodeCodeContent({ markdown: tokens[0] })]
          if (this.parsingfeatureFlags.codeBlock) {
             const { processedMarkdown, extractedCodeBlocks } = this.preParserActions.replaceCodeBlocksWithPlaceholders({
-               markdown,
+               markdown: tokens[0],
             })
             extractedBlocks = extractedCodeBlocks
             tokens = [processedMarkdown]
@@ -90,7 +92,6 @@ export class BaseMarkdownParser {
                codeBlocks: extractedBlocks,
             })
          }
-
          return tokens
       },
 
@@ -192,11 +193,11 @@ export class BaseMarkdownParser {
          const astNode = this.astGenerator.parse(tokens)
 
          for (let tokenIndex = 0; tokenIndex < astNode.children.length; tokenIndex++) {
-            const currentToken = this.astGenerator.AstMap.get(astNode.children[tokenIndex])
+            const currentNode = this.astGenerator.AstMap.get(astNode.children[tokenIndex])
 
-            if (!currentToken) continue
+            if (!currentNode) continue
 
-            const nodeType = currentToken.nodeType
+            const nodeType = currentNode.nodeType
 
             // 1. Code Block Processing (highest priority - no further parsing)
             if (this.parsingfeatureFlags.codeBlock && nodeType == 'codeblock') {
@@ -204,7 +205,7 @@ export class BaseMarkdownParser {
                listItems = []
                listStartIndex = -1
 
-               htmlElements.push(`<pre data-line='${tokenIndex}'><code>${currentToken.textContent}</code></pre>`)
+               htmlElements.push(`<pre data-line='${tokenIndex}'><code>${currentNode.textContent}</code></pre>`)
                continue
             }
 
@@ -213,8 +214,8 @@ export class BaseMarkdownParser {
                (nodeType == 'ol' && this.parsingfeatureFlags.olParsing) ||
                (nodeType == 'ul' && this.parsingfeatureFlags.ulParsing)
             ) {
-               if (currentToken.textContent) {
-                  listItems.push(currentToken.textContent)
+               if (currentNode.textContent) {
+                  listItems.push(currentNode.textContent)
                }
                if (listStartIndex === -1) {
                   listStartIndex = tokenIndex
@@ -228,19 +229,18 @@ export class BaseMarkdownParser {
             listStartIndex = -1
 
             // 3. Heading Processing (h1-h3)
-            if ((this.parsingfeatureFlags.heading && nodeType == 'h1') || nodeType == 'h2' || nodeType == 'h3') {
-               if (currentToken.textContent) {
-                  const processedText = this.parsers.processInlineFormatting(currentToken.textContent)
+            if (this.parsingfeatureFlags.heading && (nodeType == 'h1' || nodeType == 'h2' || nodeType == 'h3')) {
+               if (currentNode.textContent) {
+                  const processedText = this.parsers.processInlineFormatting(currentNode.textContent)
 
-                  const tagName = nodeType
-                  htmlElements.push(`<${tagName} data-line='${tokenIndex}'>${processedText}</${tagName}>`)
+                  htmlElements.push(`<${nodeType} data-line='${tokenIndex}'>${processedText}</${nodeType}>`)
                }
                continue
             }
 
             // 4. Blockquote Processing
             if (this.parsingfeatureFlags.blockquote && nodeType == 'blockquote') {
-               htmlElements.push(`<blockquote data-line='${tokenIndex}'>${currentToken.textContent}</blockquote>`)
+               htmlElements.push(`<blockquote data-line='${tokenIndex}'>${currentNode.textContent}</blockquote>`)
                continue
             }
 
@@ -251,8 +251,8 @@ export class BaseMarkdownParser {
             }
 
             // 6. Paragraph Processing (default case)
-            if (currentToken.textContent) {
-               this.parsers.processParagraphToken(currentToken.textContent, tokenIndex, htmlElements)
+            if (currentNode.textContent) {
+               this.parsers.processParagraphToken(currentNode.textContent, tokenIndex, htmlElements)
             }
          }
 

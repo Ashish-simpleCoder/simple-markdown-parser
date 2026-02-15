@@ -9,8 +9,8 @@ type ParentNodeType = 'ol' | 'ul'
  */
 type ListNode = {
    id: number // Unique identifier for this node
-   parentId: number // ID of the parent node (-1 for root)
-   parentType: ParentNodeType // Whether parent is ordered (ol) or unordered (ul) list
+   parentNodeId: number // ID of the parent node (-1 for root)
+   parentNodeType: ParentNodeType // Whether parent is ordered (ol) or unordered (ul) list
    elementType: 'li' // Always "li" for list items
    text: string | null // Text content of the list item
    element: HTMLElement // The actual HTML <li> element
@@ -58,15 +58,15 @@ export class ListParser {
       }): ListNode => {
          let candidateParent: ListNode | undefined = previousNode
 
-         // Traverse up the tree to find appropriate parent
+         // Traverse upward the tree to find appropriate parent
          while (candidateParent) {
-            // If candidate has less indentation, it can be the parent
+            // If candidate has less indentation, it is eligible to become parent
             if (candidateParent.indentLevel < targetIndentLevel) {
                break
             }
-            // Move up one level in the tree
-            if (candidateParent.parentId) {
-               candidateParent = nodeMap.get(candidateParent.parentId)
+            // Move upward by one level in the tree
+            if (candidateParent.parentNodeId) {
+               candidateParent = nodeMap.get(candidateParent.parentNodeId)
             }
          }
 
@@ -94,7 +94,7 @@ export class ListParser {
 
          // Process all nodes breadth-first
          while (processingQueue.length > 0) {
-            let didCreatedNewContainer = false
+            let didCreateNewContainer = false
             let currentNode = nodeMap.get(processingQueue.shift() as any)
 
             // Skip invalid nodes
@@ -102,7 +102,7 @@ export class ListParser {
                continue
             }
 
-            const parentNode = nodeMap.get(currentNode.parentId)
+            const parentNode = nodeMap.get(currentNode.parentNodeId)
 
             // Skip nodes without valid parents
             if (!parentNode) {
@@ -111,21 +111,21 @@ export class ListParser {
 
             // Create initial container for the first list item
             if (!currentContainer) {
-               currentContainer = document.createElement(currentNode.parentType)
+               currentContainer = document.createElement(currentNode.parentNodeType)
                rootFragment.appendChild(currentContainer)
 
-               didCreatedNewContainer = true
-               currentContainerParentId = currentNode.parentId
+               didCreateNewContainer = true
+               currentContainerParentId = currentNode.parentNodeId
             }
             // Create new container when parent changes or list type changes (ol/ul)
             else if (
-               currentContainerParentId != currentNode.parentId ||
-               currentContainer.nodeName.toLowerCase() != currentNode.parentType
+               currentContainerParentId != currentNode.parentNodeId ||
+               currentContainer.nodeName.toLowerCase() != currentNode.parentNodeType
             ) {
-               currentContainer = document.createElement(currentNode.parentType)
+               currentContainer = document.createElement(currentNode.parentNodeType)
 
-               didCreatedNewContainer = true
-               currentContainerParentId = currentNode.parentId
+               didCreateNewContainer = true
+               currentContainerParentId = currentNode.parentNodeId
             }
 
             if (!currentContainer) {
@@ -142,7 +142,7 @@ export class ListParser {
             }
 
             // Attach the newly created container to the appropriate location
-            if (didCreatedNewContainer) {
+            if (didCreateNewContainer) {
                if (currentNode.indentLevel == 0) {
                   // Top-level list goes to root fragment
                   rootFragment.appendChild(currentContainer)
@@ -182,7 +182,7 @@ export class ListParser {
       // Initialize the tree structure with a root node
       const nodeMap = new Map() as NodeMap
       // @ts-expect-error Bypassing the type only for root - root node has special properties
-      nodeMap.set(ROOT_ID, { parentId: null, children: [] })
+      nodeMap.set(ROOT_ID, { parentNodeId: null, children: [] })
 
       let lastInsertedNode: ListNode | undefined
       let nextNodeId = 1
@@ -191,7 +191,8 @@ export class ListParser {
       // Process each markdown list token sequentially
       while (tokens.length > 0) {
          let token = tokens.shift()
-         let listType: ParentNodeType | null = null
+
+         let listNodeType: ParentNodeType | null = null
          let newNode: ListNode = null
 
          if (!token) {
@@ -200,19 +201,19 @@ export class ListParser {
 
          // Determine if this is an ordered or unordered list item
          if (this.execFn.ol(token)) {
-            listType = 'ol'
+            listNodeType = 'ol'
          }
          if (this.execFn.ul(token)) {
-            listType = 'ul'
+            listNodeType = 'ul'
          }
 
          // Skip tokens that aren't valid list items
-         if (!listType) {
+         if (!listNodeType) {
             continue
          }
 
          // Extract components from the markdown token using regex
-         const regexMatch = this.execFn[listType](token)
+         const regexMatch = this.execFn[listNodeType](token)
          if (!regexMatch) {
             continue
          }
@@ -222,7 +223,6 @@ export class ListParser {
          // Group 2: Checkbox syntax ([x], [ ], etc.)
          // Group 3: Text content
          const [fullMatch, indentGroup, checkboxGroup, contentGroup] = regexMatch
-
          // Parse inline markdown within the list item content
          const parsedContent = processInlineFormatting(contentGroup)
 
@@ -252,8 +252,8 @@ export class ListParser {
          if (!indentGroup || !lastInsertedNode) {
             newNode = {
                id: nextNodeId,
-               parentId: ROOT_ID,
-               parentType: listType,
+               parentNodeId: ROOT_ID,
+               parentNodeType: listNodeType,
                elementType: 'li',
                text: listElement.textContent,
                element: listElement,
@@ -267,8 +267,8 @@ export class ListParser {
             if (lastInsertedNode.indentLevel == currentIndentLevel) {
                newNode = {
                   id: nextNodeId,
-                  parentId: lastInsertedNode.parentId,
-                  parentType: listType,
+                  parentNodeId: lastInsertedNode.parentNodeId,
+                  parentNodeType: listNodeType,
                   elementType: 'li',
                   text: listElement.textContent,
                   element: listElement,
@@ -286,8 +286,8 @@ export class ListParser {
 
                newNode = {
                   id: nextNodeId,
-                  parentId: parentNode.id,
-                  parentType: listType,
+                  parentNodeId: parentNode.id,
+                  parentNodeType: listNodeType,
                   elementType: 'li',
                   text: listElement.textContent,
                   element: listElement,
@@ -299,8 +299,8 @@ export class ListParser {
             else if (currentIndentLevel >= lastInsertedNode.indentLevel + DEFAULT_INDENT_LEVEL) {
                newNode = {
                   id: nextNodeId,
-                  parentId: lastInsertedNode.id,
-                  parentType: listType,
+                  parentNodeId: lastInsertedNode.id,
+                  parentNodeType: listNodeType,
                   elementType: 'li',
                   text: listElement.textContent,
                   element: listElement,
@@ -313,7 +313,7 @@ export class ListParser {
          // Add the new node to the tree structure
          if (newNode) {
             // Add this node's ID to its parent's children array
-            nodeMap.get(newNode.parentId)?.children.push(nextNodeId)
+            nodeMap.get(newNode.parentNodeId)?.children.push(nextNodeId)
             // Store the node in the tree map
             nodeMap.set(newNode.id, newNode)
             // Update reference to last inserted node

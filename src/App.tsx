@@ -78,10 +78,10 @@ export default function App() {
       <>
          <div className='fixed-bg'></div>
 
-         <h1 className='main-heading'>Markdown Parser</h1>
+         <h1 className='main-heading'>Simple Markdown Parser</h1>
 
          <div className='container'>
-            <textarea className='markdown-editor'></textarea>
+            <textarea className='markdown-editor' placeholder='Type anything...'></textarea>
             <div className='viewer markdown-body'>{jsx}</div>
          </div>
       </>

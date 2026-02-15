@@ -1,16 +1,18 @@
-import { BaseMarkdownParser, MarkdownToken } from './BaseMarkdownParser'
+import { MarkdownToken } from './BaseMarkdownParser'
 import { EXEC_FN } from './constants/execFn.constant'
 
 export type AstMap = Map<string | number, AstNode>
+export type HeadingLevel = 1 | 2 | 3
 export type AstNode = {
    id: string | number
+   parentNodeId?: string | number
    dataLine: number
    nodeType:
       | 'root'
       | 'codeblock'
       | 'ol'
       | 'ul'
-      | `h${number}`
+      | `h${HeadingLevel}`
       | 'blockquote'
       | 'hr'
       | 'img'
@@ -22,7 +24,6 @@ export type AstNode = {
       | 'p'
    children: (string | number)[]
    textContent?: string
-   parentId?: string | number
    prevSiblingId?: number
    nextSiblingId?: number
 }
@@ -44,7 +45,8 @@ export class ASTGenerator {
    execFn = EXEC_FN
 
    #generateAST(tokens: MarkdownToken[]) {
-      let astNode: AstNode = {
+      // Storing id's for all of the AstMap's node in children
+      let rootNode: AstNode = {
          id: -1,
          dataLine: -1,
          nodeType: 'root',
@@ -56,7 +58,7 @@ export class ASTGenerator {
       for (let i = 0; i < tokens.length; i++) {
          currentToken = tokens[i]
          const nodeId = i
-         astNode.children.push(nodeId)
+         rootNode.children.push(nodeId)
 
          // 1. Code Block Processing (highest priority - no further parsing)
          const codeBlockMatch = this.execFn.codeBlock(currentToken)
@@ -104,7 +106,7 @@ export class ASTGenerator {
          const headingMatch = this.execFn.heading(currentToken)
          if (headingMatch) {
             const [, headingLevel, content] = headingMatch
-            const nodeType: `h${number}` = `h${headingLevel.length}`
+            const nodeType: `h${HeadingLevel}` = `h${headingLevel.length}` as `h${HeadingLevel}`
 
             this.AstMap.set(nodeId, {
                id: nodeId,
@@ -152,7 +154,7 @@ export class ASTGenerator {
             textContent: currentToken,
          })
       }
-      return astNode
+      return rootNode
    }
 
    /**
