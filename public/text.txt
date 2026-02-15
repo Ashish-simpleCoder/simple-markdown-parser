@@ -78,3 +78,119 @@ pnpm i
 ```
 pnpm run dev
 ```
+
+
+
+## Examples
+----------------------
+
+
+# My Custom Markdown Parser
+
+The universal truth : **One punch man s-3 is not coming**
+
+# h1
+## h3
+### h3
+
+
+## UL
+- *Blast* is coming in **One** *punch* **man**....
+- **God level threat** is coming soon....
+
+## List checkbox
+- [x] Javascript
+- [x] Typescript
+- [ ] Zig
+
+1. [x] MCP server
+2. [ ] LLM
+3. [ ] Agentic AI
+
+## OL
+1. Building side projects and practicing are great ways to becoming a great developer.
+2. You are *not* building anything so I am.
+
+## Codeblock
+
+Simple inline codeblock
+```Javascript``` is subset of `Typescript`.
+
+Full codeblock
+```
+p {
+  color: red;
+}
+```
+
+## Blockquote
+> An example of blockquote
+
+### HR
+---
+
+## Code, Italic, Bold
+`MCP server` is future.
+
+This pragraph has *Italic*, **Bold** and ***Mixed*** formatting.
+
+**bold-text**, *italic-text*, ***mixed-text***.
+
+## link
+Here is the link of [Github](https://github.com)
+
+## Image
+### Image without width and height dimension
+![ashish-simpleCoder](https://avatars.githubusercontent.com/u/62009244?v=4)
+### Image with width and height dimension
+![ashish-simpleCoder](https://avatars.githubusercontent.com/u/62009244?v=4){width=200 height=200}
+
+
+I am ashish-simpleCoder
+
+simple pragraph.
+
+another simple paragraph.
+
+
+Below is another UL
+- awesome
+- go is with use and **bold** and *italic* and mixed ***mix***.
+
+
+
+## HR (weird hr)
+---
+           ---
+--_________
+---------------------
+                        _____________
+
+
+## Another codeblock
+```
+console.log("javascript")
+> Javascript is dynamically typed language.
+```
+
+
+## Nested OL
+
+1. o.1
+2. o.2
+  1. o.2.1
+    1. o.2.1.1
+      1. [ ] o.2.1.1.1
+      1. [x] o.2.1.1.2
+  2. o.2.2
+3. o.3
+
+## Nested UL
+List-1
+- 1
+- 2
+  - 2.1
+    - 2.1.1
+      - 2.1.1.1
+  - 2.2
+- 3
