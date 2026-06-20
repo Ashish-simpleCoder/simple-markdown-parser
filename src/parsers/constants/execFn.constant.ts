@@ -1,8 +1,9 @@
 import { MarkdownToken } from '../BaseMarkdownParser'
 
 /**
- * Execution functions that test and extract content from markdown tokens
- * Each function returns regex match results or null
+ * Exec functions that test and extract content from markdown tokens.
+ *
+ * Each function returns either regex match results or null.
  */
 export const EXEC_FN = {
    codeBlock: (token: MarkdownToken) => /^\`{3}([\s\S]*?)\`{3}$/g.exec(token),

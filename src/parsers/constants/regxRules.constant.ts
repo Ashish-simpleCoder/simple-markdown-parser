@@ -1,6 +1,5 @@
 /**
- * Regex patterns for matching different markdown elements
- * Separated into block-level and inline elements for clarity
+ * Regex patterns for matching different markdown elements separated into block-level elements
  */
 export const BLOCK_ITEMS_REGX_RULES = {
    h1: /^# (.+)$/gm,
@@ -14,8 +13,10 @@ export const BLOCK_ITEMS_REGX_RULES = {
    hr: /^[\s]*[-*_]{3,}[\s]*$/g,
 }
 
+/**
+ * Regex patterns for matching different markdown elements separated into inline elements
+ */
 export const INLINE_ITEMS_REGX_RULES = {
-   // Inline elements that can appear within other elements
    bold: /\*\*(.+?)\*\*/g,
    italic: /\*(.+?)\*/g,
    link: /\[(.+?)\]\((.+?)\)/g,

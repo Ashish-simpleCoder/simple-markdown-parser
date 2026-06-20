@@ -3,21 +3,18 @@ import { EXEC_FN } from '../constants/execFn.constant'
 import { PARSER_TOKENS } from '../constants/placeholder-tokens.constant'
 
 export const parserActions = {
+   extractedCodeBlocks: [] as MarkdownToken[],
    /**
     * Temporarily replaces code blocks with numbered placeholders
+    *
     * This prevents code block content from being processed as markdown
     *
     * @param markdown - Raw markdown string
-    * @returns Object with processed string and array of extracted code blocks
+    * @returns Replaced markdown string with code block placeholders
     */
-   replaceCodeBlocksWithPlaceholders({ markdown, encode = true }: { markdown: RawMarkdownString; encode?: boolean }): {
-      processedMarkdown: string
-      extractedCodeBlocks: string[]
-   } {
-      const extractedCodeBlocks: MarkdownToken[] = []
-
-      const processedMarkdown = markdown.replace(/\`{3}[\s\S]*?\`{3}/gm, (match) => {
-         extractedCodeBlocks.push(
+   replaceCodeBlocksWithPlaceholders(markdown: [RawMarkdownString], encode = true) {
+      const processedMarkdown = markdown[0].replace(/\`{3}[\s\S]*?\`{3}/gm, (match) => {
+         this.extractedCodeBlocks.push(
             !encode
                ? match
                : match
@@ -25,23 +22,30 @@ export const parserActions = {
                     .replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;')
          )
-         return `${PARSER_TOKENS.codeBlockPlaceholder}${extractedCodeBlocks.length - 1}${PARSER_TOKENS.codeBlockPlaceholder}`
+         return `${PARSER_TOKENS.codeBlockPlaceholder}${this.extractedCodeBlocks.length - 1}${PARSER_TOKENS.codeBlockPlaceholder}`
       })
 
-      return { processedMarkdown, extractedCodeBlocks }
+      return [processedMarkdown]
    },
-   encodeCodeContent({ markdown }: { markdown: RawMarkdownString }) {
-      markdown = markdown.replace(/`(.+?)`/gm, (match) => {
+   /**
+    * Encodes code content in code to prevent it from being treated as markdown
+    *
+    * @param markdown - Raw markdown string
+    * @returns Encoded markdown string
+    */
+   encodeCodeContent(markdown: RawMarkdownString) {
+      markdown = markdown[0].replace(/`(.+?)`/gm, (match) => {
          match = match
             .replace(/&/g, '&amp;') // must be first
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
          return match
       })
-      return markdown
+      return [markdown]
    },
    /**
     * Splits markdown into tokens based on block-level elements
+    *
     * Uses combined regex to identify different markdown block types
     *
     * Order of splitting:
@@ -54,23 +58,25 @@ export const parserActions = {
     * 7. Code block placeholders
     *
     * @param markdown - Markdown string to split
-    * @returns Array of markdown tokens
+    * @returns Array of splitted markdown tokens
     */
-   splitIntoBlockTokens({ markdown }: { markdown: RawMarkdownString }): MarkdownToken[] {
+   splitIntoBlockTokens(markdown: [RawMarkdownString]): MarkdownToken[] {
       const blockSplitPattern =
          /^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\s]{0,}[\-\*\+] +.+$|[\s]{0,}\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm
 
-      return markdown.split(blockSplitPattern)
+      const res = markdown[0].split(blockSplitPattern)
+      return res
    },
 
    /**
     * Removes tokens that contain only whitespace characters
+    *
     * Cleans up the token array after splitting
     *
     * @param tokens - Array of markdown tokens
     * @returns Filtered array without whitespace-only tokens
     */
-   filterWhitespaceTokens({ tokens }: { tokens: MarkdownToken[] }): MarkdownToken[] {
+   filterWhitespaceTokens(tokens: MarkdownToken[]): MarkdownToken[] {
       return tokens.filter((token) => {
          return !EXEC_FN.newLine(token)
       })
@@ -80,21 +86,14 @@ export const parserActions = {
     * Restores original code blocks from numbered placeholders
     * Final step in pre-processing that puts code blocks back
     *
-    * @param tokens - Array of tokens with placeholders
-    * @param codeBlocks - Array of original code block content
-    * @returns Array with restored code blocks
+    * @param tokens - Array of tokens
+    * @returns Array of tokens with restored code blocks
     */
-   restoreCodeBlocksFromPlaceholders({
-      tokens,
-      codeBlocks,
-   }: {
-      tokens: MarkdownToken[]
-      codeBlocks: MarkdownToken[]
-   }): MarkdownToken[] {
+   restoreCodeBlocksFromPlaceholders(tokens: MarkdownToken[]): MarkdownToken[] {
       return tokens.map((token) => {
          return token.replace(
             new RegExp(`${PARSER_TOKENS.codeBlockPlaceholder}(\\d+)${PARSER_TOKENS.codeBlockPlaceholder}`, 'g'),
-            (match, index) => codeBlocks[index]
+            (_match, index) => this.extractedCodeBlocks[index]
          )
       })
    },
