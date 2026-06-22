@@ -4,7 +4,7 @@ import { BLOCK_ITEMS_REGX_RULES, INLINE_ITEMS_REGX_RULES } from './constants/reg
 import convertDomToReact from './utils/convertDomToReact'
 import { ListParser } from './utils/ListParser'
 import { MapCache } from './utils/MapCache'
-import { parserActions } from './utils/parserActions'
+import { decodeCodeContent, parserActions } from './utils/parserActions'
 
 export type RawMarkdownString = string
 export type MarkdownToken = string
@@ -38,7 +38,7 @@ export class MarkdownParser {
       blockquote?: boolean
       hr?: boolean
    }
-   preParserLane: any[] & { extractedCodeBlocks?: MarkdownToken[] }
+   preParserLane: any[] & { extractedCodeBlocks?: MarkdownToken[]; extractedFullHtml?: MarkdownToken[] }
 
    constructor(options: Partial<typeof this.parsingfeatureFlags> = {}) {
       this.listParser = new ListParser()
@@ -59,10 +59,12 @@ export class MarkdownParser {
       this.preParserLane = [
          parserActions.encodeCodeContent,
          null,
+         parserActions.replaceFullHtmlWithPlaceholders,
          parserActions.splitIntoBlockTokens,
          parserActions.filterWhitespaceTokens,
       ]
       this.preParserLane.extractedCodeBlocks = []
+      this.preParserLane.extractedFullHtml = []
 
       if (this.parsingfeatureFlags.codeBlock) {
          this.preParserLane[1] = parserActions.replaceCodeBlocksWithPlaceholders
@@ -178,12 +180,19 @@ export class MarkdownParser {
 
             // 6. Paragraph Processing (default case)
             if (currentNode.textContent) {
-               this.parsers.processParagraphToken(currentNode.textContent, tokenIndex, htmlElements)
+               const htmlMatch = this.execFn.fullHtml(currentNode.textContent)
+               if (htmlMatch && this.preParserLane.extractedFullHtml) {
+                  htmlElements.push(decodeCodeContent(this.preParserLane.extractedFullHtml[Number(htmlMatch[1])]))
+               } else {
+                  this.parsers.processParagraphToken(currentNode.textContent, tokenIndex, htmlElements)
+               }
             }
          }
 
          // Flush any remaining list items
          this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
+
+         console.log({ htmlElements })
 
          // Parse html string to valid htmlDom object
          const childNodes = new DOMParser()
@@ -191,7 +200,6 @@ export class MarkdownParser {
             ?.querySelector('body')?.childNodes
 
          const reactElements = childNodes ? convertDomToReact(childNodes) : []
-
          return reactElements
       },
 

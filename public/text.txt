@@ -55,3 +55,55 @@ function hello() {
 
 -----
 ______
+
+
+## Html rendering
+
+<table border="1" cellspacing="0" cellpadding="8">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Department</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>101</td>
+      <td>Alice Johnson</td>
+      <td>alice@example.com</td>
+      <td>Engineering</td>
+      <td>Active</td>
+    </tr>
+    <tr>
+      <td>102</td>
+      <td>Bob Smith</td>
+      <td>bob@example.com</td>
+      <td>Marketing</td>
+      <td>Inactive</td>
+    </tr>
+    <tr>
+      <td>103</td>
+      <td>Charlie Brown</td>
+      <td>charlie@example.com</td>
+      <td>Sales</td>
+      <td>Active</td>
+    </tr>
+    <tr>
+      <td>104</td>
+      <td>Diana Lee</td>
+      <td>diana@example.com</td>
+      <td>HR</td>
+      <td>Pending</td>
+    </tr>
+    <tr>
+      <td>105</td>
+      <td>Ethan Wilson</td>
+      <td>ethan@example.com</td>
+      <td>Finance</td>
+      <td>Active</td>
+    </tr>
+  </tbody>
+</table>

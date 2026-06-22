@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react'
-import { MarkdownParser } from './parsers/BaseMarkdownParser'
+import { MarkdownParser } from './parsers'
 
 export default function App() {
    const [jsx, setJsx] = useState<ReactNode>()

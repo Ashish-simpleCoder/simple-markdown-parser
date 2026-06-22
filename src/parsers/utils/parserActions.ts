@@ -1,9 +1,11 @@
-import { MarkdownToken, RawMarkdownString } from '../BaseMarkdownParser'
+import { MarkdownToken, RawMarkdownString } from '..'
 import { EXEC_FN } from '../constants/execFn.constant'
 import { PARSER_TOKENS } from '../constants/placeholder-tokens.constant'
+import { BLOCK_ITEMS_REGX_RULES } from '../constants/regxRules.constant'
 
 export const parserActions = {
    extractedCodeBlocks: [] as MarkdownToken[],
+   extractedFullHtml: [] as MarkdownToken[],
    /**
     * Temporarily replaces code blocks with numbered placeholders
     *
@@ -42,6 +44,35 @@ export const parserActions = {
          return match
       })
       return [markdown]
+   },
+   decodeCodeContent(markdown: RawMarkdownString) {
+      markdown = markdown[0].replace(/`(.+?)`/gm, (match) => {
+         match = match.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+         return match
+      })
+      return [markdown]
+   },
+   replaceFullHtmlWithPlaceholders(markdown: [RawMarkdownString], encode = true) {
+      const processedMarkdown = markdown[0].replace(BLOCK_ITEMS_REGX_RULES.fullHtml, (match, tag, content) => {
+         this.extractedFullHtml.push(
+            !encode
+               ? match
+               : match
+                    .replace(/&/g, '&amp;') // must be first
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+         )
+         return `${PARSER_TOKENS.fullHtmlPlaceholder}${this.extractedFullHtml.length - 1}${PARSER_TOKENS.fullHtmlPlaceholder}`
+      })
+      return [processedMarkdown]
+   },
+   restoreFullHtmlFromPlaceholders(tokens: MarkdownToken[]): MarkdownToken[] {
+      return tokens.map((token) => {
+         return token.replace(
+            new RegExp(`${PARSER_TOKENS.fullHtmlPlaceholder}(\\d+)${PARSER_TOKENS.fullHtmlPlaceholder}`, 'g'),
+            (_match, index) => this.extractedFullHtml[index]
+         )
+      })
    },
    /**
     * Splits markdown into tokens based on block-level elements
@@ -97,4 +128,8 @@ export const parserActions = {
          )
       })
    },
+}
+
+export function decodeCodeContent(markdown: RawMarkdownString) {
+   return markdown.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 }

@@ -1,4 +1,4 @@
-import { MarkdownToken } from '../../BaseMarkdownParser'
+import { MarkdownToken } from '../../'
 import { EXEC_FN } from '../../constants/execFn.constant'
 
 export type AstMap = Map<string | number, AstNode>

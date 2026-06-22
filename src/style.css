@@ -40,11 +40,8 @@ div.fixed-bg {
    scrollbar-width: auto !important;
 }
 
-p,
-textarea,
-li,
-pre,
-blockquote {
+.markdown-body,
+.markdown-editor {
    font-size: 16px !important;
    line-height: 28px;
 }

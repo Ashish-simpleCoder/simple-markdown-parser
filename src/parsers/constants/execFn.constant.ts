@@ -1,4 +1,5 @@
-import { MarkdownToken } from '../BaseMarkdownParser'
+import { MarkdownToken } from '../'
+import { PARSER_TOKENS } from './placeholder-tokens.constant'
 
 /**
  * Exec functions that test and extract content from markdown tokens.
@@ -16,4 +17,6 @@ export const EXEC_FN = {
    img: (token: MarkdownToken) => /^!\[(.+?)\]\((.+?)\)/g.exec(token),
    htmlTag: (token: MarkdownToken) => /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(token),
    newLine: (token: MarkdownToken) => /^\s*$/g.exec(token),
+   fullHtml: (token: MarkdownToken) =>
+      new RegExp(`${PARSER_TOKENS.fullHtmlPlaceholder}(\\d+)${PARSER_TOKENS.fullHtmlPlaceholder}`, 'g').exec(token),
 }

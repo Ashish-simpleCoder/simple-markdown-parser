@@ -11,6 +11,7 @@ export const BLOCK_ITEMS_REGX_RULES = {
 
    blockquote: /^> (.+)$/g,
    hr: /^[\s]*[-*_]{3,}[\s]*$/g,
+   fullHtml: /<([a-z]*)\b[^>]*>(\s?.*?\s?)<\/\1>/gms,
 }
 
 /**
