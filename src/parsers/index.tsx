@@ -4,7 +4,15 @@ import { BLOCK_ITEMS_REGX_RULES, INLINE_ITEMS_REGX_RULES } from './constants/reg
 import convertDomToReact from './utils/convertDomToReact'
 import { ListParser } from './utils/ListParser'
 import { MapCache } from './utils/MapCache'
-import { decodeCodeContent, parserActions } from './utils/parserActions'
+import {
+   splitIntoBlockTokens,
+   replaceHtmlBlocksWithPlaceholders,
+   restoreHtmlBlocksFromPlaceholders,
+   replaceCodeBlocksWithPlaceholders,
+   restoreCodeBlocksFromPlaceholders,
+   filterWhitespaceTokens,
+   encodeCodeContent,
+} from './utils/helpers'
 
 export type RawMarkdownString = string
 export type MarkdownToken = string
@@ -38,7 +46,7 @@ export class MarkdownParser {
       blockquote?: boolean
       hr?: boolean
    }
-   preParserLane: any[] & { extractedCodeBlocks?: MarkdownToken[]; extractedFullHtml?: MarkdownToken[] }
+   preParserLane: any[] & { extractedCodeBlocks: MarkdownToken[]; extractedHtmlBlocks: MarkdownToken[] }
 
    constructor(options: Partial<typeof this.parsingfeatureFlags> = {}) {
       this.listParser = new ListParser()
@@ -57,18 +65,18 @@ export class MarkdownParser {
       }
 
       this.preParserLane = [
-         parserActions.encodeCodeContent,
+         encodeCodeContent,
          null,
-         parserActions.replaceFullHtmlWithPlaceholders,
-         parserActions.splitIntoBlockTokens,
-         parserActions.filterWhitespaceTokens,
-      ]
+         replaceHtmlBlocksWithPlaceholders,
+         splitIntoBlockTokens,
+         filterWhitespaceTokens,
+      ] as typeof this.preParserLane
       this.preParserLane.extractedCodeBlocks = []
-      this.preParserLane.extractedFullHtml = []
+      this.preParserLane.extractedHtmlBlocks = []
 
       if (this.parsingfeatureFlags.codeBlock) {
-         this.preParserLane[1] = parserActions.replaceCodeBlocksWithPlaceholders
-         this.preParserLane.push(parserActions.restoreCodeBlocksFromPlaceholders)
+         this.preParserLane[1] = replaceCodeBlocksWithPlaceholders
+         this.preParserLane.push(restoreCodeBlocksFromPlaceholders)
       }
    }
 
@@ -89,14 +97,16 @@ export class MarkdownParser {
        * @returns Array of clean markdown tokens ready for HTML conversion
        */
       preParse: (markdown: RawMarkdownString): MarkdownToken[] => {
-         let res = [markdown]
+         this.preParserLane.extractedCodeBlocks = []
+         this.preParserLane.extractedHtmlBlocks = []
+         let res: any[] | string = markdown
          this.preParserLane.forEach((cb, _index, arr) => {
             if (cb) {
                res = cb.call(arr, res)
             }
          })
 
-         return res
+         return res as any
       },
 
       /**
@@ -181,8 +191,8 @@ export class MarkdownParser {
             // 6. Paragraph Processing (default case)
             if (currentNode.textContent) {
                const htmlMatch = this.execFn.fullHtml(currentNode.textContent)
-               if (htmlMatch && this.preParserLane.extractedFullHtml) {
-                  htmlElements.push(decodeCodeContent(this.preParserLane.extractedFullHtml[Number(htmlMatch[1])]))
+               if (htmlMatch && this.preParserLane.extractedHtmlBlocks) {
+                  htmlElements.push(restoreHtmlBlocksFromPlaceholders.call(this.preParserLane, currentNode.textContent))
                } else {
                   this.parsers.processParagraphToken(currentNode.textContent, tokenIndex, htmlElements)
                }
@@ -191,8 +201,6 @@ export class MarkdownParser {
 
          // Flush any remaining list items
          this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
-
-         console.log({ htmlElements })
 
          // Parse html string to valid htmlDom object
          const childNodes = new DOMParser()

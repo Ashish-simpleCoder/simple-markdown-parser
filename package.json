@@ -7,7 +7,8 @@
       "build": "vite build",
       "preview": "vite preview",
       "test": "vitest",
-      "format": "prettier --write ./src --cache"
+      "format": "prettier --write ./src --cache",
+      "prebuild": "tsc -p ./tsconfig.app.json"
    },
    "keywords": [
       "markdown parser",
