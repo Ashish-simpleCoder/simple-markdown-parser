@@ -3,8 +3,6 @@
 **Simple Markdown Parser** is a lightweight, high-performance markdown parser that converts markdown content directly into JSX.
 
 
-The parser avoids expensive recursive strategies and instead uses **iterative list processing** with caching to efficiently render ordered and unordered lists—even when deeply nested. It also supports inline HTML within markdown, checklist items, image attributes etc.
-
 <img width="1358" height="653" alt="image" src="https://github.com/user-attachments/assets/08da9fd8-9eae-47c3-9d39-3119e7f3a8da" />
 
 ## 🛠️ Tech Stack
