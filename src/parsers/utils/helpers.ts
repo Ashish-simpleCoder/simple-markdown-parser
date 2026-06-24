@@ -140,7 +140,7 @@ export function splitIntoBlockTokens(markdown: RawMarkdownString): MarkdownToken
    const blockSplitPattern =
       /^(#{1,3} .+$|> *.+$|[\s]*[-*_]{3,}[\s]*$|[\s]{0,}[\-\*\+] +.+$|[\s]{0,}\d+. .+$|[.+\n]|###CODEBLOCK###\d+###CODEBLOCK###$)/gm
 
-   const res = markdown.split(blockSplitPattern)
+   const res = markdown.split(blockSplitPattern).map((token) => trimLineFeedChar(token))
    return res
 }
 
@@ -156,4 +156,14 @@ export function filterWhitespaceTokens(tokens: MarkdownToken[]): MarkdownToken[]
    return tokens.filter((token) => {
       return !EXEC_FN.newLine(token)
    })
+}
+
+/**
+ * Trims the line feed character from a token
+ *
+ * @param token - The token to trim
+ * @returns The token with the line feed character removed
+ */
+export function trimLineFeedChar(token: MarkdownToken): MarkdownToken {
+   return token.replaceAll(/\n/gm, '')
 }

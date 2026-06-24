@@ -202,6 +202,15 @@ export class MarkdownParser {
          // Flush any remaining list items
          this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
 
+         return htmlElements
+      },
+
+      /**
+       * Converts the parsed HTML elements into a React node tree
+       * @param htmlElements - Array of HTML strings to convert
+       * @returns React node tree
+       */
+      convertHtmlToReactNode: (htmlElements: string[]) => {
          // Parse html string to valid htmlDom object
          const childNodes = new DOMParser()
             .parseFromString(htmlElements.join('\n'), 'text/html')
@@ -302,7 +311,7 @@ export class MarkdownParser {
     */
    parse(markdown: RawMarkdownString): React.ReactNode[] {
       const mdTokens = this.parsers.preParse(markdown)
-      const reactNodes = this.parsers.convertTokensToHtml(mdTokens)
-      return reactNodes
+      const htmlElements = this.parsers.convertTokensToHtml(mdTokens)
+      return this.parsers.convertHtmlToReactNode(htmlElements)
    }
 }
