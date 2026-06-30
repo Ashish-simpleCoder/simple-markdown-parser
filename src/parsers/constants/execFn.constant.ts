@@ -17,6 +17,6 @@ export const EXEC_FN = {
    img: (token: MarkdownToken) => /^!\[(.+?)\]\((.+?)\)/g.exec(token),
    htmlTag: (token: MarkdownToken) => /<([a-z]*)\b[^>]*>(.*?)<\/\1>/.exec(token),
    newLine: (token: MarkdownToken) => /^\s*$/g.exec(token),
-   fullHtml: (token: MarkdownToken) =>
+   htmlBlock: (token: MarkdownToken) =>
       new RegExp(`${PARSER_TOKENS.fullHtmlPlaceholder}(\\d+)${PARSER_TOKENS.fullHtmlPlaceholder}`, 'g').exec(token),
 }

@@ -96,7 +96,7 @@ export function replaceHtmlBlocksWithPlaceholders(
    markdown: RawMarkdownString,
    encode = true
 ): string {
-   const processedMarkdown = markdown.replace(BLOCK_ITEMS_REGX_RULES.fullHtml, (match, tag, content) => {
+   const processedMarkdown = markdown.replace(BLOCK_ITEMS_REGX_RULES.htmlBlock, (match, tag, content) => {
       this.extractedHtmlBlocks.push(!encode ? match : encodeAngleBrackets(match))
       return `${PARSER_TOKENS.fullHtmlPlaceholder}${this.extractedHtmlBlocks.length - 1}${PARSER_TOKENS.fullHtmlPlaceholder}`
    })

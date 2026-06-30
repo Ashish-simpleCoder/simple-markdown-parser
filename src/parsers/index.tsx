@@ -190,7 +190,7 @@ export class MarkdownParser {
 
             // 6. Paragraph Processing (default case)
             if (currentNode.textContent) {
-               const htmlMatch = this.execFn.fullHtml(currentNode.textContent)
+               const htmlMatch = this.execFn.htmlBlock(currentNode.textContent)
                if (htmlMatch && this.preParserLane.extractedHtmlBlocks) {
                   htmlElements.push(restoreHtmlBlocksFromPlaceholders.call(this.preParserLane, currentNode.textContent))
                } else {

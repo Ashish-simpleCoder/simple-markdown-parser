@@ -8,11 +8,12 @@
       "preview": "vite preview",
       "test": "vitest",
       "format": "prettier --write ./src --cache",
-      "prebuild": "tsc -p ./tsconfig.app.json"
+      "prebuild": "tsc -p ./tsconfig.app.json",
+      "clear": "rm -rf dist && rm -rf node_modules"
    },
    "keywords": [
-      "markdown parser",
-      "markdown parser in js"
+      "Markdown Parser",
+      "Simple markdown parser built for React"
    ],
    "author": "ashish-simpleCoder",
    "license": "MIT",
