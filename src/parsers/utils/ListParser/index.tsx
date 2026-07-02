@@ -1,5 +1,5 @@
-import { ListItemToken, MarkdownToken } from '../BaseMarkdownParser'
-import { EXEC_FN } from '../constants/execFn.constant'
+import { ListItemToken, MarkdownToken } from '../../'
+import { EXEC_FN } from '../../constants/execFn.constant'
 
 type ParentNodeType = 'ol' | 'ul'
 

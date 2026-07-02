@@ -1,7 +1,7 @@
 import React from 'react'
 import StyleToJS from 'style-to-js'
 
-import { HTML_ATTRIBUTES_MAP, HTML_BOOLEAN_ATTRIBUTES_SET, HTML_NODE_NAMES_SET } from './constant'
+import { HTML_ATTRIBUTES_MAP, HTML_BOOLEAN_ATTRIBUTES_SET, HTML_NODE_NAMES_SET } from '../constants'
 
 export default function convertDomToReact(
    nodes: NodeListOf<ChildNode & { data?: string; attributes?: NamedNodeMap }>
@@ -20,7 +20,9 @@ export default function convertDomToReact(
       }
 
       // Skip script (prevent xss) and invalid html nodes
-      if (!HTML_NODE_NAMES_SET.has(nodeName) || nodeName === 'script') {
+      // Skip head. Prevent loading external resources
+      // Skip iframe. Prevent loading external resources
+      if (!HTML_NODE_NAMES_SET.has(nodeName) || nodeName === 'script' || nodeName === 'head' || nodeName === 'iframe') {
          continue
       }
 

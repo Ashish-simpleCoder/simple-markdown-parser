@@ -1,12 +1,12 @@
 import { ReactNode, useEffect, useState } from 'react'
-import { BaseMarkdownParser } from './parsers/BaseMarkdownParser'
+import { MarkdownParser } from './parsers'
 
 export default function App() {
    const [jsx, setJsx] = useState<ReactNode>()
 
    useEffect(() => {
       const textarea = document.querySelector('textarea') as HTMLTextAreaElement
-      const makrdownParser = new BaseMarkdownParser()
+      const makrdownParser = new MarkdownParser()
 
       fetch('/text.txt')
          .then((response) => response.text())
@@ -78,7 +78,17 @@ export default function App() {
       <>
          <div className='fixed-bg'></div>
 
-         <h1 className='main-heading'>Simple Markdown Parser</h1>
+         <div className='main-heading'>
+            <h1>Simple Markdown Parser</h1>
+            <a
+               href='https://github.com/Ashish-simpleCoder/simple-markdown-parser'
+               target='_blank'
+               rel='noopener noreferrer'
+               style={{ fontSize: '16px' }}
+            >
+               View on GitHub
+            </a>
+         </div>
 
          <div className='container'>
             <textarea className='markdown-editor' placeholder='Type anything...'></textarea>

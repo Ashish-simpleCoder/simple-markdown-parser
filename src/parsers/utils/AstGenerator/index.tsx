@@ -1,5 +1,5 @@
-import { MarkdownToken } from './BaseMarkdownParser'
-import { EXEC_FN } from './constants/execFn.constant'
+import { MarkdownToken } from '../../'
+import { EXEC_FN } from '../../constants/execFn.constant'
 
 export type AstMap = Map<string | number, AstNode>
 export type HeadingLevel = 1 | 2 | 3

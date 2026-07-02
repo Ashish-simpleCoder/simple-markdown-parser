@@ -1,10 +1,18 @@
-import { ASTGenerator } from './AstGenerator'
+import { ASTGenerator } from './utils/AstGenerator'
 import { EXEC_FN } from './constants/execFn.constant'
 import { BLOCK_ITEMS_REGX_RULES, INLINE_ITEMS_REGX_RULES } from './constants/regxRules.constant'
-import convertDomToReact from './convertDomToReact'
-import { ListParser } from './ListParser'
+import convertDomToReact from './utils/convertDomToReact'
+import { ListParser } from './utils/ListParser'
 import { MapCache } from './utils/MapCache'
-import { parserActions } from './utils/parserActions'
+import {
+   splitIntoBlockTokens,
+   replaceHtmlBlocksWithPlaceholders,
+   restoreHtmlBlocksFromPlaceholders,
+   replaceCodeBlocksWithPlaceholders,
+   restoreCodeBlocksFromPlaceholders,
+   filterWhitespaceTokens,
+   encodeCodeContent,
+} from './utils/helpers'
 
 export type RawMarkdownString = string
 export type MarkdownToken = string
@@ -20,39 +28,56 @@ export type ParsedHtml = string
  * 2. Main parsing: Convert each token to appropriate HTML element
  * 3. Inline parsing: Handle formatting within elements (bold, italic, links, etc.)
  */
-export class BaseMarkdownParser {
-   #tokenCache = new MapCache()
+export class MarkdownParser {
+   #tokenCache: MapCache
 
    inlineItemRegxRules = INLINE_ITEMS_REGX_RULES
    blockItemRegxRules = BLOCK_ITEMS_REGX_RULES
-   execFn = EXEC_FN
+   execFn: typeof EXEC_FN
 
-   listParser = new ListParser()
-   astGenerator = new ASTGenerator()
+   listParser: ListParser
+   astGenerator: ASTGenerator
 
-   // Feature flags
-   parsingfeatureFlags = {
-      codeBlock: true,
-      olParsing: true,
-      ulParsing: true,
-      heading: true,
-      blockquote: true,
-      hr: true,
+   parsingfeatureFlags: {
+      codeBlock?: boolean
+      olParsing?: boolean
+      ulParsing?: boolean
+      heading?: boolean
+      blockquote?: boolean
+      hr?: boolean
    }
+   preParserLane: any[] & { extractedCodeBlocks: MarkdownToken[]; extractedHtmlBlocks: MarkdownToken[] }
 
-   constructor(options: Partial<typeof this.parsingfeatureFlags> = this.parsingfeatureFlags) {
-      this.parsingfeatureFlags = { ...this.parsingfeatureFlags, ...options }
-   }
+   constructor(options: Partial<typeof this.parsingfeatureFlags> = {}) {
+      this.listParser = new ListParser()
+      this.astGenerator = new ASTGenerator()
+      this.execFn = EXEC_FN
+      this.#tokenCache = new MapCache()
 
-   /**
-    * Pre-processing actions that prepare raw markdown for parsing
-    */
-   preParserActions = {
-      replaceCodeBlocksWithPlaceholders: parserActions.replaceCodeBlocksWithPlaceholders,
-      splitIntoBlockTokens: parserActions.splitIntoBlockTokens,
-      filterWhitespaceTokens: parserActions.filterWhitespaceTokens,
-      restoreCodeBlocksFromPlaceholders: parserActions.restoreCodeBlocksFromPlaceholders,
-      encodeCodeContent: parserActions.encodeCodeContent,
+      this.parsingfeatureFlags = {
+         codeBlock: true,
+         olParsing: true,
+         ulParsing: true,
+         heading: true,
+         blockquote: true,
+         hr: true,
+         ...options,
+      }
+
+      this.preParserLane = [
+         encodeCodeContent,
+         null,
+         replaceHtmlBlocksWithPlaceholders,
+         splitIntoBlockTokens,
+         filterWhitespaceTokens,
+      ] as typeof this.preParserLane
+      this.preParserLane.extractedCodeBlocks = []
+      this.preParserLane.extractedHtmlBlocks = []
+
+      if (this.parsingfeatureFlags.codeBlock) {
+         this.preParserLane[1] = replaceCodeBlocksWithPlaceholders
+         this.preParserLane.push(restoreCodeBlocksFromPlaceholders)
+      }
    }
 
    /**
@@ -71,28 +96,17 @@ export class BaseMarkdownParser {
        * @param markdown - Raw markdown input string
        * @returns Array of clean markdown tokens ready for HTML conversion
        */
-      preParseMarkdown: (markdown: RawMarkdownString): string[] => {
-         let tokens: string[] = [markdown]
-         let extractedBlocks: string[] = []
+      preParse: (markdown: RawMarkdownString): MarkdownToken[] => {
+         this.preParserLane.extractedCodeBlocks = []
+         this.preParserLane.extractedHtmlBlocks = []
+         let res: any[] | string = markdown
+         this.preParserLane.forEach((cb, _index, arr) => {
+            if (cb) {
+               res = cb.call(arr, res)
+            }
+         })
 
-         tokens = [this.preParserActions.encodeCodeContent({ markdown: tokens[0] })]
-         if (this.parsingfeatureFlags.codeBlock) {
-            const { processedMarkdown, extractedCodeBlocks } = this.preParserActions.replaceCodeBlocksWithPlaceholders({
-               markdown: tokens[0],
-            })
-            extractedBlocks = extractedCodeBlocks
-            tokens = [processedMarkdown]
-         }
-         tokens = this.preParserActions.splitIntoBlockTokens({ markdown: tokens[0] })
-         tokens = this.preParserActions.filterWhitespaceTokens({ tokens: tokens })
-
-         if (this.parsingfeatureFlags.codeBlock) {
-            tokens = this.preParserActions.restoreCodeBlocksFromPlaceholders({
-               tokens: tokens,
-               codeBlocks: extractedBlocks,
-            })
-         }
-         return tokens
+         return res as any
       },
 
       /**
@@ -110,82 +124,6 @@ export class BaseMarkdownParser {
        * @returns Complete HTML string
        */
       convertTokensToHtml: (tokens: MarkdownToken[]) => {
-         const htmlElements: ParsedHtml[] = []
-         let listItems: ListItemToken[] = []
-         let listStartIndex: number = -1
-
-         for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
-            const currentToken = tokens[tokenIndex]
-
-            // 1. Code Block Processing (highest priority - no further parsing)
-            const codeBlockMatch = this.execFn.codeBlock(currentToken)
-            if (this.parsingfeatureFlags.codeBlock && codeBlockMatch) {
-               // Flush any pending list items before processing code block
-               this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
-               listItems = []
-               listStartIndex = -1
-
-               const [, codeContent] = codeBlockMatch
-               htmlElements.push(`<pre data-line='${tokenIndex}'><code>${codeContent}</code></pre>`)
-               continue
-            }
-
-            // 2. List Processing (ol/ul) - collect items for batch processing
-            if (this.execFn.ol(currentToken) || this.execFn.ul(currentToken)) {
-               listItems.push(currentToken)
-               if (listStartIndex === -1) {
-                  listStartIndex = tokenIndex
-               }
-               continue
-            }
-
-            // Flush any pending list items before processing other elements
-            this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
-            listItems = []
-            listStartIndex = -1
-
-            // 3. Heading Processing (h1-h3)
-            const headingMatch = this.execFn.heading(currentToken)
-            if (this.parsingfeatureFlags.heading && headingMatch) {
-               const [, headingLevel, headingText] = headingMatch
-               const processedText = this.parsers.processInlineFormatting(headingText)
-
-               const tagName = `h${headingLevel.length}`
-               htmlElements.push(`<${tagName} data-line='${tokenIndex}'>${processedText}</${tagName}>`)
-               continue
-            }
-
-            // 4. Blockquote Processing
-            const blockquoteMatch = this.execFn.blockquote(currentToken)
-            if (this.parsingfeatureFlags.blockquote && blockquoteMatch) {
-               const [, blockquoteText] = blockquoteMatch
-               htmlElements.push(`<blockquote data-line='${tokenIndex}'>${blockquoteText}</blockquote>`)
-               continue
-            }
-
-            // 5. Horizontal Rule Processing
-            const hrMatch = this.execFn.hr(currentToken)
-            if (this.parsingfeatureFlags.hr && hrMatch) {
-               htmlElements.push(`<hr data-line='${tokenIndex}'/>`)
-               continue
-            }
-
-            // 6. Paragraph Processing (default case)
-            this.parsers.processParagraphToken(currentToken, tokenIndex, htmlElements)
-         }
-
-         // Flush any remaining list items
-         this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
-
-         // Parse html string to valid htmlDom object
-         const childNodes = new DOMParser()
-            .parseFromString(htmlElements.join('\n'), 'text/html')
-            ?.querySelector('body')?.childNodes
-         const reactElements = childNodes ? convertDomToReact(childNodes) : []
-         return reactElements
-      },
-
-      convertTokensToHtml2: (tokens: MarkdownToken[]) => {
          const htmlElements: ParsedHtml[] = []
          let listItems: ListItemToken[] = []
          let listStartIndex: number = -1
@@ -252,20 +190,33 @@ export class BaseMarkdownParser {
 
             // 6. Paragraph Processing (default case)
             if (currentNode.textContent) {
-               this.parsers.processParagraphToken(currentNode.textContent, tokenIndex, htmlElements)
+               const htmlMatch = this.execFn.htmlBlock(currentNode.textContent)
+               if (htmlMatch && this.preParserLane.extractedHtmlBlocks) {
+                  htmlElements.push(restoreHtmlBlocksFromPlaceholders.call(this.preParserLane, currentNode.textContent))
+               } else {
+                  this.parsers.processParagraphToken(currentNode.textContent, tokenIndex, htmlElements)
+               }
             }
          }
 
          // Flush any remaining list items
          this.parsers.flushPendingList(listItems, listStartIndex, htmlElements)
 
+         return htmlElements
+      },
+
+      /**
+       * Converts the parsed HTML elements into a React node tree
+       * @param htmlElements - Array of HTML strings to convert
+       * @returns React node tree
+       */
+      convertHtmlToReactNode: (htmlElements: string[]) => {
          // Parse html string to valid htmlDom object
          const childNodes = new DOMParser()
             .parseFromString(htmlElements.join('\n'), 'text/html')
             ?.querySelector('body')?.childNodes
 
          const reactElements = childNodes ? convertDomToReact(childNodes) : []
-
          return reactElements
       },
 
@@ -325,13 +276,14 @@ export class BaseMarkdownParser {
       },
 
       /**
-       * Processes inline markdown formatting within text content
+       * Processes inline markdown formatting within text content.
+       *
        * Handles bold, italic, links, code, images, etc.
        *
        * Processing order matters - more specific patterns should be processed first
        *
        * @param token - Text content to process
-       * @returns HTML with inline formatting applied
+       * @returns Markdown token with inline formatting applied
        */
       processInlineFormatting: (token: MarkdownToken) => {
          let processedContent = token
@@ -342,7 +294,10 @@ export class BaseMarkdownParser {
          processedContent = processedContent.replace(this.inlineItemRegxRules.code, '<code>$1</code>')
          processedContent = processedContent.replace(this.inlineItemRegxRules.bold, '<strong>$1</strong>')
          processedContent = processedContent.replace(this.inlineItemRegxRules.italic, '<em>$1</em>')
-         processedContent = processedContent.replace(this.inlineItemRegxRules.link, '<a href="$2">$1</a>')
+         processedContent = processedContent.replace(
+            this.inlineItemRegxRules.link,
+            '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+         )
 
          return processedContent
       },
@@ -355,6 +310,8 @@ export class BaseMarkdownParser {
     * @returns Parsed HTML string
     */
    parse(markdown: RawMarkdownString): React.ReactNode[] {
-      return this.parsers.convertTokensToHtml2(this.parsers.preParseMarkdown(markdown))
+      const mdTokens = this.parsers.preParse(markdown)
+      const htmlElements = this.parsers.convertTokensToHtml(mdTokens)
+      return this.parsers.convertHtmlToReactNode(htmlElements)
    }
 }

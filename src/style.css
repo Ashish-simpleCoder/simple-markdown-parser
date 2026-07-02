@@ -31,7 +31,8 @@ div.fixed-bg {
    position: fixed;
    z-index: -1;
    inset: 0;
-   background: linear-gradient(rgb(38 42 48), rgb(33 33 42));
+   /*background: linear-gradient(rgb(38 42 48), rgb(33 33 42));*/
+   background: linear-gradient(rgb(27, 25, 25), rgb(33 33 42));
 }
 
 * {
@@ -39,17 +40,10 @@ div.fixed-bg {
    scrollbar-width: auto !important;
 }
 
-p,
-textarea,
-li,
-pre,
-blockquote {
+.markdown-body,
+.markdown-editor {
    font-size: 16px !important;
    line-height: 28px;
-}
-
-.markdown-editor {
-   max-width: 550px;
 }
 
 .main-heading {
@@ -58,15 +52,19 @@ blockquote {
    top: 20px;
    position: sticky;
    width: 100%;
-   max-width: 1400px;
+   max-width: 1600px;
    margin-inline: auto;
    text-decoration: underline;
+
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
 }
 
 .container {
    display: flex;
    width: 100%;
-   max-width: 1400px;
+   max-width: 1600px;
    margin-inline: auto;
    margin-bottom: 40px;
    gap: 40px;
@@ -85,7 +83,8 @@ textarea.markdown-editor {
    height: calc(100vh - 120px);
    /*background-color: rgb(47, 47, 63);*/
    /*background-color: rgb(20 18 29);*/
-   background-color: rgb(29 29 42);
+   /*background-color: rgb(29 29 42);*/
+   background-color: rgb(13, 11, 11);
    border-radius: 8px;
 
    color: rgb(200, 200, 200);
@@ -109,6 +108,16 @@ textarea.markdown-editor {
    border-bottom: 1px solid rgb(83, 83, 83);
 }
 
+.markdown-body h1 {
+   font-size: 32px;
+}
+.markdown-body h2 {
+   font-size: 24px;
+}
+.markdown-body h3 {
+   font-size: 20px;
+}
+
 .markdown-body code {
    background-color: rgb(59, 59, 59);
    padding-inline: 6px;
@@ -117,13 +126,6 @@ textarea.markdown-editor {
    border-radius: 4px;
    display: inline-block;
 }
-
-.markdown-body img {
-   /* width: 100px; */
-   /* height: 100px; */
-}
-
-/* .markdown-body {} */
 
 .markdown-body pre {
    background-color: rgb(59, 59, 59);
@@ -173,4 +175,8 @@ textarea.markdown-editor {
    color: white;
 
    cursor: pointer;
+}
+
+a {
+   color: #4db7da;
 }

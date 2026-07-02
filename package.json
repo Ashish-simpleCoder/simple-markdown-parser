@@ -6,11 +6,14 @@
       "dev": "vite",
       "build": "vite build",
       "preview": "vite preview",
-      "format": "prettier --write ./src --cache"
+      "test": "vitest",
+      "format": "prettier --write ./src --cache",
+      "prebuild": "tsc -p ./tsconfig.app.json",
+      "clear": "rm -rf dist && rm -rf node_modules"
    },
    "keywords": [
-      "markdown parser",
-      "markdown parser in js"
+      "Markdown Parser",
+      "Simple markdown parser built for React"
    ],
    "author": "ashish-simpleCoder",
    "license": "MIT",
@@ -21,15 +24,20 @@
       "style-to-js": "^1.1.18"
    },
    "devDependencies": {
+      "@testing-library/jest-dom": "^5.16.5",
+      "@testing-library/react": "^14.0.0",
       "@types/react": "^18.3.3",
       "@types/react-dom": "^18.3.0",
+      "@types/testing-library__jest-dom": "^5.14.5",
       "@vitejs/plugin-react": "^4.3.1",
       "autoprefixer": "^10.4.19",
+      "jsdom": "^21.1.1",
       "postcss": "^8.4.39",
       "prettier": "^3.8.1",
       "tailwindcss": "^3.4.4",
       "typescript": "^5.2.2",
-      "vite": "^5.3.1"
+      "vite": "^5.3.3",
+      "vitest": "^2.0.3"
    },
    "prettier": {
       "arrowParens": "always",
@@ -40,5 +48,6 @@
       "tabWidth": 3,
       "jsxSingleQuote": true,
       "trailingComma": "es5"
-   }
+   },
+   "packageManager": "pnpm@10.34.4"
 }
