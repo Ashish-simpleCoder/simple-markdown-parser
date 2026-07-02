@@ -20,7 +20,9 @@ export default function convertDomToReact(
       }
 
       // Skip script (prevent xss) and invalid html nodes
-      if (!HTML_NODE_NAMES_SET.has(nodeName) || nodeName === 'script') {
+      // Skip head. Prevent loading external resources
+      // Skip iframe. Prevent loading external resources
+      if (!HTML_NODE_NAMES_SET.has(nodeName) || nodeName === 'script' || nodeName === 'head' || nodeName === 'iframe') {
          continue
       }
 
